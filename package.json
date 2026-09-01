@@ -1,0 +1,33 @@
+{
+  "name": "electivaii_plataformasubastas_equipodiegoalexanderg",
+  "version": "1.0.0",
+  "description": "Plataforma de Subastas en Línea - Electiva II Desarrollo",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "dev:build": "tsc --watch",
+    "dev:server": "node --watch dist/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dagc-4173/ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/dagc-4173/ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG/issues"
+  },
+  "homepage": "https://github.com/dagc-4173/ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG#readme",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.4.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
