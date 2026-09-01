@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "dev:build": "tsc --watch",
-    "dev:server": "node --watch dist/server.js"
+    "dev:server": "node --watch dist/server.js",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -25,7 +26,8 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^26.4.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "express": "^5.2.1"
