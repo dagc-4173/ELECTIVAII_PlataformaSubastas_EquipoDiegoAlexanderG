@@ -127,6 +127,31 @@ describe("Auction", () => {
     expect(auction.status.value).toBe("OPEN");
     expect(auction.bidHistory).toHaveLength(1);
   });
+
+  it("RN-04 should reject cancellation when the auction is no longer open", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.close(new Date("2026-09-04T18:00:00.000Z"));
+
+    expect(auction.status.value).toBe("DESERTED");
+
+    expect(() => auction.cancel()).toThrow(
+      "Only open auctions can be cancelled",
+    );
+
+    expect(auction.status.value).toBe("DESERTED");
+  });
   
   it("RN-06 should accept a bid when the auction is open", () => {
     const auction = Auction.publish(
@@ -190,6 +215,38 @@ describe("Auction", () => {
     expect(auction.rejectedBidHistory[0]?.amount.value).toBe(100000);
     expect(auction.rejectedBidHistory[0]?.reason).toBe(
       "Bids are only allowed on open auctions",
+    );
+  });
+
+  it("RN-06 and RN-12 should reject and record a bid at or after the auction closing date", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    const lateBid = Bid.create(
+      BidId.create("bid-001"),
+      UserId.create("bidder-001"),
+      Money.create(100000),
+      new Date("2026-09-04T18:00:00.000Z"),
+    );
+
+    expect(() => auction.placeBid(lateBid)).toThrow(
+      "Bids are not allowed after the auction closing date",
+    );
+
+    expect(auction.bidHistory).toHaveLength(0);
+    expect(auction.rejectedBidHistory).toHaveLength(1);
+    expect(auction.rejectedBidHistory[0]?.reason).toBe(
+      "Bids are not allowed after the auction closing date",
     );
   });
 

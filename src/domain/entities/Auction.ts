@@ -58,6 +58,10 @@ export class Auction {
   }
 
   cancel(): void {
+    if (!this.statusValue.equals(AuctionStatus.open())) {
+      throw new Error("Only open auctions can be cancelled");
+    }
+
     if (this.bids.length > 0) {
       throw new Error("Auction with bids cannot be cancelled");
     }
@@ -68,6 +72,13 @@ export class Auction {
   placeBid(bid: Bid): void {
     if (!this.statusValue.equals(AuctionStatus.open())) {
       return this.rejectBid(bid, "Bids are only allowed on open auctions");
+    }
+
+    if (bid.date.getTime() >= this.publicationData.closesAt.getTime()) {
+      return this.rejectBid(
+        bid,
+        "Bids are not allowed after the auction closing date",
+      );
     }
 
     if (bid.bidder.equals(this.sellerId)) {
