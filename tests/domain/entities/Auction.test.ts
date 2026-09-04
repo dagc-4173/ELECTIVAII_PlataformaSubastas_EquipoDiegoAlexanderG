@@ -9,6 +9,7 @@ import { Money } from "../../../src/domain/value-objects/Money.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
 import { Bid } from "../../../src/domain/entities/Bid.js";
 import { BidId } from "../../../src/domain/value-objects/BidId.js";
+import { PaymentOrderId } from "../../../src/domain/value-objects/PaymentOrderId.js";
 
 describe("Auction", () => {
   it("should publish an auction with valid data", () => {
@@ -484,5 +485,182 @@ describe("Auction", () => {
 
     expect(auction.bidHistory).toHaveLength(1);
     expect(auction.bidHistory[0]?.id.value).toBe("bid-001");
+  });
+
+  it("should reject closing before the scheduled closing date", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    expect(() => auction.close(new Date("2026-09-04T17:59:59.000Z"))).toThrow(
+      "Auction cannot close before its scheduled closing date",
+    );
+
+    expect(auction.status.value).toBe("OPEN");
+  });
+
+  it("RN-13 should close the auction and assign the highest bidder as winner", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-002"),
+        UserId.create("bidder-002"),
+        Money.create(105000),
+        new Date("2026-09-03T19:05:00.000Z"),
+      ),
+    );
+
+    auction.close(
+      new Date("2026-09-04T18:00:00.000Z"),
+      PaymentOrderId.create("payment-order-001"),
+    );
+
+    expect(auction.status.value).toBe("CLOSED");
+    expect(auction.winner?.value).toBe("bidder-002");
+    expect(auction.bidHistory.at(-1)?.amount.value).toBe(105000);
+  });
+
+  it("RN-14 should mark an auction without bids as deserted", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.close(new Date("2026-09-04T18:00:00.000Z"));
+
+    expect(auction.status.value).toBe("DESERTED");
+    expect(auction.winner).toBeUndefined();
+    expect(auction.bidHistory).toHaveLength(0);
+  });
+
+  it("RN-15 should generate a payment order for the winning bid with a 48-hour deadline", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-002"),
+        UserId.create("bidder-002"),
+        Money.create(105000),
+        new Date("2026-09-03T19:05:00.000Z"),
+      ),
+    );
+
+    const closedAt = new Date("2026-09-04T18:00:00.000Z");
+
+    auction.close(closedAt, PaymentOrderId.create("payment-order-001"));
+
+    expect(auction.paymentOrder).toBeDefined();
+    expect(auction.paymentOrder?.id.value).toBe("payment-order-001");
+    expect(auction.paymentOrder?.winner.value).toBe("bidder-002");
+    expect(auction.paymentOrder?.amount.value).toBe(105000);
+    expect(auction.paymentOrder?.createdDate.toISOString()).toBe(
+      "2026-09-04T18:00:00.000Z",
+    );
+    expect(auction.paymentOrder?.dueDate.toISOString()).toBe(
+      "2026-09-06T18:00:00.000Z",
+    );
+  });
+
+  it("RN-16 should reject closing the same auction more than once", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    auction.close(
+      new Date("2026-09-04T18:00:00.000Z"),
+      PaymentOrderId.create("payment-order-001"),
+    );
+
+    expect(auction.status.value).toBe("CLOSED");
+
+    expect(() =>
+      auction.close(
+        new Date("2026-09-04T18:05:00.000Z"),
+        PaymentOrderId.create("payment-order-002"),
+      ),
+    ).toThrow("Auction can only be closed once");
+
+    expect(auction.status.value).toBe("CLOSED");
+    expect(auction.winner?.value).toBe("bidder-001");
+    expect(auction.paymentOrder).toBeDefined();
+    expect(auction.paymentOrder?.id.value).toBe("payment-order-001");
+    expect(auction.paymentOrder?.winner.value).toBe("bidder-001");
+    expect(auction.paymentOrder?.amount.value).toBe(100000);
   });
 });

@@ -7,6 +7,8 @@ import { UserId } from "../value-objects/UserId.js";
 import { Bid } from "./Bid.js";
 import { RejectedBidAttempt } from "./RejectedBidAttempt.js";
 import { RejectedBidAttemptId } from "../value-objects/RejectedBidAttemptId.js";
+import { PaymentOrder } from "./PaymentOrder.js";
+import { PaymentOrderId } from "../value-objects/PaymentOrderId.js";
 
 export class Auction {
   private constructor(
@@ -18,6 +20,7 @@ export class Auction {
     private statusValue: AuctionStatus,
     private readonly bids: Bid[],
     private readonly rejectedBidAttempts: RejectedBidAttempt[],
+    private paymentOrderValue?: PaymentOrder,
   ) {}
 
   static publish(
@@ -36,6 +39,7 @@ export class Auction {
       AuctionStatus.open(),
       [],
       [],
+      undefined,
     );
   }
 
@@ -108,6 +112,46 @@ export class Auction {
     this.bids.push(bid);
   }
 
+  close(closedAt: Date, paymentOrderId?: PaymentOrderId): void {
+    if (Number.isNaN(closedAt.getTime())) {
+      throw new Error("Auction closing date is invalid");
+    }
+
+    if (!this.statusValue.equals(AuctionStatus.open())) {
+      throw new Error("Auction can only be closed once");
+    }
+
+    if (closedAt.getTime() < this.publicationData.closesAt.getTime()) {
+      throw new Error("Auction cannot close before its scheduled closing date");
+    }
+
+    if (this.bids.length === 0) {
+      this.statusValue = AuctionStatus.deserted();
+      return;
+    }
+
+    if (paymentOrderId === undefined) {
+      throw new Error(
+        "Payment order id is required when closing an auction with bids",
+      );
+    }
+
+    const highestBid = this.bids.at(-1);
+
+    if (highestBid === undefined) {
+      throw new Error("Highest bid is required to close the auction");
+    }
+
+    this.paymentOrderValue = PaymentOrder.create(
+      paymentOrderId,
+      highestBid.bidder,
+      highestBid.amount,
+      closedAt,
+    );
+
+    this.statusValue = AuctionStatus.closed();
+  }
+
   get id(): AuctionId {
     return this.auctionId;
   }
@@ -137,5 +181,17 @@ export class Auction {
 
   get rejectedBidHistory(): readonly RejectedBidAttempt[] {
     return [...this.rejectedBidAttempts];
+  }
+
+  get winner(): UserId | undefined {
+    if (!this.statusValue.equals(AuctionStatus.closed())) {
+      return undefined;
+    }
+
+    return this.bids.at(-1)?.bidder;
+  }
+
+  get paymentOrder(): PaymentOrder | undefined {
+    return this.paymentOrderValue;
   }
 }
