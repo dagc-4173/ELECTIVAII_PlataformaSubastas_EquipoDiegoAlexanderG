@@ -59,6 +59,27 @@ export class Auction {
       throw new Error("First bid must be greater than or equal to base price");
     }
 
+    const currentHighestBid = this.bids.at(-1);
+
+    if (
+      currentHighestBid !== undefined &&
+      currentHighestBid.bidder.equals(bid.bidder)
+    ) {
+      throw new Error("Highest bidder cannot outbid own leading bid");
+    }
+
+    if (currentHighestBid !== undefined) {
+      const minimumRequiredAmount =
+        currentHighestBid.amount.value +
+        this.publicationData.minimumIncrement.value;
+
+      if (bid.amount.value < minimumRequiredAmount) {
+        throw new Error(
+          "Bid must be greater than or equal to current highest bid plus minimum increment",
+        );
+      }
+    }
+
     this.bids.push(bid);
   }
 

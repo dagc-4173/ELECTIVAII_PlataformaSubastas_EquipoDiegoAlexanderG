@@ -95,6 +95,37 @@ describe("Auction", () => {
     expect(auction.status.value).toBe("CANCELLED");
     expect(auction.bidHistory).toHaveLength(0);
   });
+
+  it("RN-04 should reject cancellation when the auction already has bids", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    expect(() => auction.cancel()).toThrow(
+      "Auction with bids cannot be cancelled",
+    );
+
+    expect(auction.status.value).toBe("OPEN");
+    expect(auction.bidHistory).toHaveLength(1);
+  });
   
   it("RN-06 should accept a bid when the auction is open", () => {
     const auction = Auction.publish(
@@ -234,5 +265,153 @@ describe("Auction", () => {
     );
 
     expect(auction.bidHistory).toHaveLength(0);
+  });
+
+  it("RN-09 should accept a bid equal to the current highest bid plus minimum increment", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-002"),
+        UserId.create("bidder-002"),
+        Money.create(105000),
+        new Date("2026-09-03T19:05:00.000Z"),
+      ),
+    );
+
+    expect(auction.bidHistory).toHaveLength(2);
+    expect(auction.bidHistory[1]?.amount.value).toBe(105000);
+  });
+
+  it("RN-09 should reject a bid below the current highest bid plus minimum increment", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    const invalidBid = Bid.create(
+      BidId.create("bid-002"),
+      UserId.create("bidder-002"),
+      Money.create(104999),
+      new Date("2026-09-03T19:05:00.000Z"),
+    );
+
+    expect(() => auction.placeBid(invalidBid)).toThrow(
+      "Bid must be greater than or equal to current highest bid plus minimum increment",
+    );
+
+    expect(auction.bidHistory).toHaveLength(1);
+  });
+
+  it("RN-09 should reject a bid equal to the current highest bid", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    const equalBid = Bid.create(
+      BidId.create("bid-002"),
+      UserId.create("bidder-002"),
+      Money.create(100000),
+      new Date("2026-09-03T19:05:00.000Z"),
+    );
+
+    expect(() => auction.placeBid(equalBid)).toThrow(
+      "Bid must be greater than or equal to current highest bid plus minimum increment",
+    );
+
+    expect(auction.bidHistory).toHaveLength(1);
+  });
+
+  it("RN-10 should reject a bid from the current highest bidder", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    const ownHigherBid = Bid.create(
+      BidId.create("bid-002"),
+      UserId.create("bidder-001"),
+      Money.create(105000),
+      new Date("2026-09-03T19:05:00.000Z"),
+    );
+
+    expect(() => auction.placeBid(ownHigherBid)).toThrow(
+      "Highest bidder cannot outbid own leading bid",
+    );
+
+    expect(auction.bidHistory).toHaveLength(1);
+    expect(auction.bidHistory[0]?.bidder.value).toBe("bidder-001");
   });
 });
