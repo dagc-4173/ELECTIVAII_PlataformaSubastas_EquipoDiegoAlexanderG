@@ -9,6 +9,9 @@ import { CategoryId } from "../../../src/domain/value-objects/CategoryId.js";
 import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
 import { Money } from "../../../src/domain/value-objects/Money.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
+import { Bid } from "../../../src/domain/entities/Bid.js";
+import { BidId } from "../../../src/domain/value-objects/BidId.js";
+import { RejectedBidAttemptId } from "../../../src/domain/value-objects/RejectedBidAttemptId.js";
 
 function createAuction(): Auction {
   return Auction.publish(
@@ -111,5 +114,102 @@ describe("PlaceBidUseCase", () => {
         rejectedBidAttemptId: "rejected-attempt-001",
       }),
     ).rejects.toThrow("Auction not found");
+  });
+
+  it("should lazily close an expired auction without previous bids and reject the new bid", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const auction = createAuction();
+
+    await repository.save(auction);
+
+    const useCase = new PlaceBidUseCase(repository);
+
+    await expect(
+      useCase.execute({
+        auctionId: "auction-001",
+        bidId: "bid-001",
+        bidderId: "bidder-001",
+        amount: 100000,
+        placedAt: new Date("2026-09-05T12:00:00.000Z"),
+        rejectedBidAttemptId: "rejected-attempt-001",
+      }),
+    ).rejects.toThrow("Bids are only allowed on open auctions");
+
+    const storedAuction = await repository.findById(
+      AuctionId.create("auction-001"),
+    );
+
+    expect(storedAuction?.status.value).toBe("DESERTED");
+    expect(storedAuction?.bidHistory).toHaveLength(0);
+    expect(storedAuction?.rejectedBidHistory).toHaveLength(1);
+  });
+
+  it("should lazily close an expired auction without previous bids and reject the new bid", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const auction = createAuction();
+
+    await repository.save(auction);
+
+    const useCase = new PlaceBidUseCase(repository);
+
+    await expect(
+      useCase.execute({
+        auctionId: "auction-001",
+        bidId: "bid-001",
+        bidderId: "bidder-001",
+        amount: 100000,
+        placedAt: new Date("2026-09-05T12:00:00.000Z"),
+        rejectedBidAttemptId: "rejected-attempt-001",
+      }),
+    ).rejects.toThrow("Bids are only allowed on open auctions");
+
+    const storedAuction = await repository.findById(
+      AuctionId.create("auction-001"),
+    );
+
+    expect(storedAuction?.status.value).toBe("DESERTED");
+    expect(storedAuction?.bidHistory).toHaveLength(0);
+    expect(storedAuction?.rejectedBidHistory).toHaveLength(1);
+  });
+
+  it("should lazily close an expired auction with previous bids before rejecting a new bid", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const auction = createAuction();
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-04T13:00:00.000Z"),
+      ),
+      RejectedBidAttemptId.create("rejected-attempt-initial"),
+    );
+
+    await repository.save(auction);
+
+    const useCase = new PlaceBidUseCase(repository);
+
+    await expect(
+      useCase.execute({
+        auctionId: "auction-001",
+        bidId: "bid-002",
+        bidderId: "bidder-002",
+        amount: 105000,
+        placedAt: new Date("2026-09-05T12:00:00.000Z"),
+        rejectedBidAttemptId: "rejected-attempt-002",
+        paymentOrderId: "payment-order-001",
+      }),
+    ).rejects.toThrow("Bids are only allowed on open auctions");
+
+    const storedAuction = await repository.findById(
+      AuctionId.create("auction-001"),
+    );
+
+    expect(storedAuction?.status.value).toBe("CLOSED");
+    expect(storedAuction?.winner?.value).toBe("bidder-001");
+    expect(storedAuction?.paymentOrder).toBeDefined();
+    expect(storedAuction?.bidHistory).toHaveLength(1);
+    expect(storedAuction?.rejectedBidHistory).toHaveLength(1);
   });
 });

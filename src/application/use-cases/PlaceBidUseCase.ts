@@ -2,8 +2,10 @@ import type { AuctionRepository } from "../../domain/ports/AuctionRepository.js"
 import { Auction } from "../../domain/entities/Auction.js";
 import { Bid } from "../../domain/entities/Bid.js";
 import { AuctionId } from "../../domain/value-objects/AuctionId.js";
+import { AuctionStatus } from "../../domain/value-objects/AuctionStatus.js";
 import { BidId } from "../../domain/value-objects/BidId.js";
 import { Money } from "../../domain/value-objects/Money.js";
+import { PaymentOrderId } from "../../domain/value-objects/PaymentOrderId.js";
 import { RejectedBidAttemptId } from "../../domain/value-objects/RejectedBidAttemptId.js";
 import { UserId } from "../../domain/value-objects/UserId.js";
 
@@ -14,6 +16,7 @@ export interface PlaceBidInput {
   amount: number;
   placedAt: Date;
   rejectedBidAttemptId: string;
+  paymentOrderId?: string;
 }
 
 export class PlaceBidUseCase {
@@ -26,6 +29,23 @@ export class PlaceBidUseCase {
 
     if (auction === null) {
       throw new Error("Auction not found");
+    }
+
+    const hasExpired =
+      input.placedAt.getTime() >=
+      auction.publication.closesAt.getTime();
+
+    const isOpen = auction.status.equals(AuctionStatus.open());
+
+    if (hasExpired && isOpen) {
+      const paymentOrderId =
+        input.paymentOrderId === undefined
+          ? undefined
+          : PaymentOrderId.create(input.paymentOrderId);
+
+      auction.close(input.placedAt, paymentOrderId);
+
+      await this.auctionRepository.save(auction);
     }
 
     const bid = Bid.create(
@@ -42,6 +62,7 @@ export class PlaceBidUseCase {
       );
     } catch (error: unknown) {
       await this.auctionRepository.save(auction);
+
       throw error;
     }
 

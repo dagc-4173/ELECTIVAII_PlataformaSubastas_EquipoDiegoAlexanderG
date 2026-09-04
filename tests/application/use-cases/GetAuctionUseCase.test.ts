@@ -9,6 +9,9 @@ import { CategoryId } from "../../../src/domain/value-objects/CategoryId.js";
 import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
 import { Money } from "../../../src/domain/value-objects/Money.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
+import { Bid } from "../../../src/domain/entities/Bid.js";
+import { BidId } from "../../../src/domain/value-objects/BidId.js";
+import { RejectedBidAttemptId } from "../../../src/domain/value-objects/RejectedBidAttemptId.js";
 
 function createAuction(): Auction {
   return Auction.publish(
@@ -34,7 +37,10 @@ describe("GetAuctionUseCase", () => {
 
     const useCase = new GetAuctionUseCase(repository);
 
-    const result = await useCase.execute("auction-001");
+    const result = await useCase.execute({
+      auctionId: "auction-001",
+      currentDate: new Date("2026-09-04T13:00:00.000Z"),
+    });
 
     expect(result).toBe(auction);
   });
@@ -43,8 +49,56 @@ describe("GetAuctionUseCase", () => {
     const repository = new InMemoryAuctionRepository();
     const useCase = new GetAuctionUseCase(repository);
 
-    const result = await useCase.execute("auction-404");
+    const result = await useCase.execute({
+      auctionId: "auction-404",
+      currentDate: new Date("2026-09-04T13:00:00.000Z"),
+    });
 
     expect(result).toBeNull();
+  });
+
+  it("should lazily close an expired auction without bids as deserted", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const auction = createAuction();
+
+    await repository.save(auction);
+
+    const useCase = new GetAuctionUseCase(repository);
+
+    const result = await useCase.execute({
+      auctionId: "auction-001",
+      currentDate: new Date("2026-09-05T12:00:00.000Z"),
+    });
+
+    expect(result?.status.value).toBe("DESERTED");
+  });
+
+  it("should lazily close an expired auction with bids and adjudicate it", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const auction = createAuction();
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-04T13:00:00.000Z"),
+      ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
+    );
+
+    await repository.save(auction);
+
+    const useCase = new GetAuctionUseCase(repository);
+
+    const result = await useCase.execute({
+      auctionId: "auction-001",
+      currentDate: new Date("2026-09-05T12:00:00.000Z"),
+      paymentOrderId: "payment-order-001",
+    });
+
+    expect(result?.status.value).toBe("CLOSED");
+    expect(result?.winner?.value).toBe("bidder-001");
+    expect(result?.paymentOrder).toBeDefined();
   });
 });
