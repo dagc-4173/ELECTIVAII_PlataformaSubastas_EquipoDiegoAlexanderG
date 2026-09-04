@@ -37,11 +37,30 @@ export class Auction {
 
   cancel(): void {
     if (this.bids.length > 0) {
-        throw new Error("Auction with bids cannot be cancelled");
+      throw new Error("Auction with bids cannot be cancelled");
     }
 
     this.statusValue = AuctionStatus.cancelled();
+  }
+
+  placeBid(bid: Bid): void {
+    if (!this.statusValue.equals(AuctionStatus.open())) {
+      throw new Error("Bids are only allowed on open auctions");
     }
+
+    if (bid.bidder.equals(this.sellerId)) {
+      throw new Error("Seller cannot bid on own auction");
+    }
+
+    if (
+      this.bids.length === 0 &&
+      bid.amount.value < this.publicationData.basePrice.value
+    ) {
+      throw new Error("First bid must be greater than or equal to base price");
+    }
+
+    this.bids.push(bid);
+  }
 
   get id(): AuctionId {
     return this.auctionId;
