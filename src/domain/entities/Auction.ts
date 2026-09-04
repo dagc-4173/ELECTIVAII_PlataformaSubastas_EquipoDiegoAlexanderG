@@ -43,9 +43,13 @@ export class Auction {
     );
   }
 
-  private rejectBid(bid: Bid, reason: string): never {
+  private rejectBid(
+    bid: Bid,
+    rejectedAttemptId: RejectedBidAttemptId,
+    reason: string,
+  ): never {
     const rejectedAttempt = RejectedBidAttempt.create(
-      RejectedBidAttemptId.create(bid.id.value),
+      rejectedAttemptId,
       bid.bidder,
       bid.amount,
       reason,
@@ -69,20 +73,29 @@ export class Auction {
     this.statusValue = AuctionStatus.cancelled();
   }
 
-  placeBid(bid: Bid): void {
+  placeBid(bid: Bid, rejectedAttemptId: RejectedBidAttemptId): void {
     if (!this.statusValue.equals(AuctionStatus.open())) {
-      return this.rejectBid(bid, "Bids are only allowed on open auctions");
+      return this.rejectBid(
+        bid,
+        rejectedAttemptId,
+        "Bids are only allowed on open auctions",
+      );
     }
 
     if (bid.date.getTime() >= this.publicationData.closesAt.getTime()) {
       return this.rejectBid(
         bid,
+        rejectedAttemptId,
         "Bids are not allowed after the auction closing date",
       );
     }
 
     if (bid.bidder.equals(this.sellerId)) {
-      return this.rejectBid(bid, "Seller cannot bid on own auction");
+      return this.rejectBid(
+        bid,
+        rejectedAttemptId,
+        "Seller cannot bid on own auction",
+      );
     }
 
     if (
@@ -91,6 +104,7 @@ export class Auction {
     ) {
       return this.rejectBid(
         bid,
+        rejectedAttemptId,
         "First bid must be greater than or equal to base price",
       );
     }
@@ -103,6 +117,7 @@ export class Auction {
     ) {
       return this.rejectBid(
         bid,
+        rejectedAttemptId,
         "Highest bidder cannot outbid own leading bid",
       );
     }
@@ -115,6 +130,7 @@ export class Auction {
       if (bid.amount.value < minimumRequiredAmount) {
         return this.rejectBid(
           bid,
+          rejectedAttemptId,
           "Bid must be greater than or equal to current highest bid plus minimum increment",
         );
       }

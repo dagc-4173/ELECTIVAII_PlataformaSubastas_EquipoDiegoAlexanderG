@@ -10,6 +10,7 @@ import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
 import { Money } from "../../../src/domain/value-objects/Money.js";
 import { PaymentOrderId } from "../../../src/domain/value-objects/PaymentOrderId.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
+import { RejectedBidAttemptId } from "../../../src/domain/value-objects/RejectedBidAttemptId.js";
 
 describe("Auction", () => {
   it("should publish an auction with valid data", () => {
@@ -118,6 +119,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     expect(() => auction.cancel()).toThrow(
@@ -174,7 +176,7 @@ describe("Auction", () => {
         new Date("2026-09-03T19:00:00.000Z"),
     );
 
-    auction.placeBid(bid);
+    auction.placeBid(bid, RejectedBidAttemptId.create("rejected-attempt-001"));
 
     expect(auction.bidHistory).toHaveLength(1);
     expect(auction.bidHistory[0]?.id.value).toBe("bid-001");
@@ -203,14 +205,14 @@ describe("Auction", () => {
       new Date("2026-09-03T19:00:00.000Z"),
     );
 
-    expect(() => auction.placeBid(bid)).toThrow(
-      "Bids are only allowed on open auctions",
-    );
+    expect(() =>
+      auction.placeBid(bid, RejectedBidAttemptId.create("rejected-attempt-001")),
+    ).toThrow("Bids are only allowed on open auctions");
 
     expect(auction.bidHistory).toHaveLength(0);
 
     expect(auction.rejectedBidHistory).toHaveLength(1);
-    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-001");
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("rejected-attempt-001");
     expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-001");
     expect(auction.rejectedBidHistory[0]?.amount.value).toBe(100000);
     expect(auction.rejectedBidHistory[0]?.reason).toBe(
@@ -239,9 +241,9 @@ describe("Auction", () => {
       new Date("2026-09-04T18:00:00.000Z"),
     );
 
-    expect(() => auction.placeBid(lateBid)).toThrow(
-      "Bids are not allowed after the auction closing date",
-    );
+    expect(() =>
+      auction.placeBid(lateBid, RejectedBidAttemptId.create("rejected-attempt-001")),
+    ).toThrow("Bids are not allowed after the auction closing date");
 
     expect(auction.bidHistory).toHaveLength(0);
     expect(auction.rejectedBidHistory).toHaveLength(1);
@@ -271,14 +273,14 @@ describe("Auction", () => {
       new Date("2026-09-03T19:00:00.000Z"),
     );
 
-    expect(() => auction.placeBid(bid)).toThrow(
-      "Seller cannot bid on own auction",
-    );
+    expect(() =>
+      auction.placeBid(bid, RejectedBidAttemptId.create("rejected-attempt-001")),
+    ).toThrow("Seller cannot bid on own auction");
 
     expect(auction.bidHistory).toHaveLength(0);
 
     expect(auction.rejectedBidHistory).toHaveLength(1);
-    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-001");
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("rejected-attempt-001");
     expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("seller-001");
     expect(auction.rejectedBidHistory[0]?.amount.value).toBe(100000);
     expect(auction.rejectedBidHistory[0]?.reason).toBe(
@@ -307,7 +309,7 @@ describe("Auction", () => {
       new Date("2026-09-03T19:00:00.000Z"),
     );
 
-    auction.placeBid(bid);
+    auction.placeBid(bid, RejectedBidAttemptId.create("rejected-attempt-001"));
 
     expect(auction.bidHistory).toHaveLength(1);
     expect(auction.bidHistory[0]?.amount.value).toBe(100000);
@@ -334,14 +336,17 @@ describe("Auction", () => {
       new Date("2026-09-03T19:00:00.000Z"),
     );
 
-    expect(() => auction.placeBid(bid)).toThrow(
-      "First bid must be greater than or equal to base price",
-    );
+    expect(() =>
+      auction.placeBid(
+        bid,
+        RejectedBidAttemptId.create("rejected-attempt-001"),
+      ),
+    ).toThrow("First bid must be greater than or equal to base price");
 
     expect(auction.bidHistory).toHaveLength(0);
 
     expect(auction.rejectedBidHistory).toHaveLength(1);
-    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-001");
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("rejected-attempt-001");
     expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-001");
     expect(auction.rejectedBidHistory[0]?.amount.value).toBe(99999);
     expect(auction.rejectedBidHistory[0]?.reason).toBe(
@@ -370,6 +375,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     auction.placeBid(
@@ -379,6 +385,7 @@ describe("Auction", () => {
         Money.create(105000),
         new Date("2026-09-03T19:05:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-002"),
     );
 
     expect(auction.bidHistory).toHaveLength(2);
@@ -406,6 +413,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     const invalidBid = Bid.create(
@@ -415,14 +423,19 @@ describe("Auction", () => {
       new Date("2026-09-03T19:05:00.000Z"),
     );
 
-    expect(() => auction.placeBid(invalidBid)).toThrow(
+    expect(() =>
+      auction.placeBid(
+        invalidBid,
+        RejectedBidAttemptId.create("rejected-attempt-002"),
+      ),
+    ).toThrow(
       "Bid must be greater than or equal to current highest bid plus minimum increment",
     );
 
     expect(auction.bidHistory).toHaveLength(1);
 
     expect(auction.rejectedBidHistory).toHaveLength(1);
-    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-002");
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("rejected-attempt-002");
     expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-002");
     expect(auction.rejectedBidHistory[0]?.amount.value).toBe(104999);
     expect(auction.rejectedBidHistory[0]?.reason).toBe(
@@ -451,6 +464,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     const equalBid = Bid.create(
@@ -460,7 +474,12 @@ describe("Auction", () => {
       new Date("2026-09-03T19:05:00.000Z"),
     );
 
-    expect(() => auction.placeBid(equalBid)).toThrow(
+    expect(() =>
+      auction.placeBid(
+        equalBid,
+        RejectedBidAttemptId.create("rejected-attempt-002"),
+      ),
+    ).toThrow(
       "Bid must be greater than or equal to current highest bid plus minimum increment",
     );
 
@@ -488,6 +507,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     const ownHigherBid = Bid.create(
@@ -497,14 +517,17 @@ describe("Auction", () => {
       new Date("2026-09-03T19:05:00.000Z"),
     );
 
-    expect(() => auction.placeBid(ownHigherBid)).toThrow(
-      "Highest bidder cannot outbid own leading bid",
-    );
+    expect(() =>
+      auction.placeBid(
+        ownHigherBid,
+        RejectedBidAttemptId.create("rejected-attempt-002"),
+      ),
+    ).toThrow("Highest bidder cannot outbid own leading bid");
 
     expect(auction.bidHistory).toHaveLength(1);
 
     expect(auction.rejectedBidHistory).toHaveLength(1);
-    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-002");
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("rejected-attempt-002");
     expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-001");
     expect(auction.rejectedBidHistory[0]?.amount.value).toBe(105000);
     expect(auction.rejectedBidHistory[0]?.reason).toBe(
@@ -533,6 +556,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     const externalHistory = auction.bidHistory;
@@ -586,6 +610,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     auction.placeBid(
@@ -595,6 +620,7 @@ describe("Auction", () => {
         Money.create(105000),
         new Date("2026-09-03T19:05:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-002"),
     );
 
     auction.close(
@@ -649,6 +675,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     auction.placeBid(
@@ -658,6 +685,7 @@ describe("Auction", () => {
         Money.create(105000),
         new Date("2026-09-03T19:05:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-002"),
     );
 
     const closedAt = new Date("2026-09-04T18:00:00.000Z");
@@ -697,6 +725,7 @@ describe("Auction", () => {
         Money.create(100000),
         new Date("2026-09-03T19:00:00.000Z"),
       ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
     auction.close(
