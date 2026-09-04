@@ -5,6 +5,8 @@ import { CategoryId } from "../value-objects/CategoryId.js";
 import { ItemId } from "../value-objects/ItemId.js";
 import { UserId } from "../value-objects/UserId.js";
 import { Bid } from "./Bid.js";
+import { RejectedBidAttempt } from "./RejectedBidAttempt.js";
+import { RejectedBidAttemptId } from "../value-objects/RejectedBidAttemptId.js";
 
 export class Auction {
   private constructor(
@@ -15,6 +17,7 @@ export class Auction {
     private readonly publicationData: AuctionPublicationData,
     private statusValue: AuctionStatus,
     private readonly bids: Bid[],
+    private readonly rejectedBidAttempts: RejectedBidAttempt[],
   ) {}
 
   static publish(
@@ -32,7 +35,22 @@ export class Auction {
       publicationData,
       AuctionStatus.open(),
       [],
+      [],
     );
+  }
+
+  private rejectBid(bid: Bid, reason: string): never {
+    const rejectedAttempt = RejectedBidAttempt.create(
+      RejectedBidAttemptId.create(bid.id.value),
+      bid.bidder,
+      bid.amount,
+      reason,
+      bid.date,
+    );
+
+    this.rejectedBidAttempts.push(rejectedAttempt);
+
+    throw new Error(reason);
   }
 
   cancel(): void {
@@ -45,18 +63,21 @@ export class Auction {
 
   placeBid(bid: Bid): void {
     if (!this.statusValue.equals(AuctionStatus.open())) {
-      throw new Error("Bids are only allowed on open auctions");
+      return this.rejectBid(bid, "Bids are only allowed on open auctions");
     }
 
     if (bid.bidder.equals(this.sellerId)) {
-      throw new Error("Seller cannot bid on own auction");
+      return this.rejectBid(bid, "Seller cannot bid on own auction");
     }
 
     if (
       this.bids.length === 0 &&
       bid.amount.value < this.publicationData.basePrice.value
     ) {
-      throw new Error("First bid must be greater than or equal to base price");
+      return this.rejectBid(
+        bid,
+        "First bid must be greater than or equal to base price",
+      );
     }
 
     const currentHighestBid = this.bids.at(-1);
@@ -65,7 +86,10 @@ export class Auction {
       currentHighestBid !== undefined &&
       currentHighestBid.bidder.equals(bid.bidder)
     ) {
-      throw new Error("Highest bidder cannot outbid own leading bid");
+      return this.rejectBid(
+        bid,
+        "Highest bidder cannot outbid own leading bid",
+      );
     }
 
     if (currentHighestBid !== undefined) {
@@ -74,7 +98,8 @@ export class Auction {
         this.publicationData.minimumIncrement.value;
 
       if (bid.amount.value < minimumRequiredAmount) {
-        throw new Error(
+        return this.rejectBid(
+          bid,
           "Bid must be greater than or equal to current highest bid plus minimum increment",
         );
       }
@@ -108,5 +133,9 @@ export class Auction {
   }
   get bidHistory(): readonly Bid[] {
     return [...this.bids];
+  }
+
+  get rejectedBidHistory(): readonly RejectedBidAttempt[] {
+    return [...this.rejectedBidAttempts];
   }
 }

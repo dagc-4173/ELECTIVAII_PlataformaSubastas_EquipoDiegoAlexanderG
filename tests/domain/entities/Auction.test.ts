@@ -154,7 +154,7 @@ describe("Auction", () => {
     expect(auction.bidHistory[0]?.id.value).toBe("bid-001");
   });
 
-  it("RN-06 should reject a bid when the auction is not open", () => {
+  it("RN-06 and RN-12 should reject and record a bid when the auction is not open", () => {
     const auction = Auction.publish(
       AuctionId.create("auction-001"),
       UserId.create("seller-001"),
@@ -182,9 +182,17 @@ describe("Auction", () => {
     );
 
     expect(auction.bidHistory).toHaveLength(0);
+
+    expect(auction.rejectedBidHistory).toHaveLength(1);
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-001");
+    expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-001");
+    expect(auction.rejectedBidHistory[0]?.amount.value).toBe(100000);
+    expect(auction.rejectedBidHistory[0]?.reason).toBe(
+      "Bids are only allowed on open auctions",
+    );
   });
 
-  it("RN-07 should reject a bid from the auction seller", () => {
+  it("RN-07 and RN-12 should reject and record a bid from the auction seller", () => {
     const auction = Auction.publish(
       AuctionId.create("auction-001"),
       UserId.create("seller-001"),
@@ -210,6 +218,14 @@ describe("Auction", () => {
     );
 
     expect(auction.bidHistory).toHaveLength(0);
+
+    expect(auction.rejectedBidHistory).toHaveLength(1);
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-001");
+    expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("seller-001");
+    expect(auction.rejectedBidHistory[0]?.amount.value).toBe(100000);
+    expect(auction.rejectedBidHistory[0]?.reason).toBe(
+      "Seller cannot bid on own auction",
+    );
   });
 
   it("RN-08 should accept the first bid when it is equal to the base price", () => {
@@ -239,7 +255,7 @@ describe("Auction", () => {
     expect(auction.bidHistory[0]?.amount.value).toBe(100000);
   });
 
-  it("RN-08 should reject the first bid when it is below the base price", () => {
+  it("RN-08 and RN-12 should reject and record the first bid when it is below the base price", () => {
     const auction = Auction.publish(
       AuctionId.create("auction-001"),
       UserId.create("seller-001"),
@@ -265,6 +281,14 @@ describe("Auction", () => {
     );
 
     expect(auction.bidHistory).toHaveLength(0);
+
+    expect(auction.rejectedBidHistory).toHaveLength(1);
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-001");
+    expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-001");
+    expect(auction.rejectedBidHistory[0]?.amount.value).toBe(99999);
+    expect(auction.rejectedBidHistory[0]?.reason).toBe(
+      "First bid must be greater than or equal to base price",
+    );
   });
 
   it("RN-09 should accept a bid equal to the current highest bid plus minimum increment", () => {
@@ -303,7 +327,7 @@ describe("Auction", () => {
     expect(auction.bidHistory[1]?.amount.value).toBe(105000);
   });
 
-  it("RN-09 should reject a bid below the current highest bid plus minimum increment", () => {
+  it("RN-09 and RN-12 should reject and record a bid below the required minimum", () => {
     const auction = Auction.publish(
       AuctionId.create("auction-001"),
       UserId.create("seller-001"),
@@ -338,6 +362,14 @@ describe("Auction", () => {
     );
 
     expect(auction.bidHistory).toHaveLength(1);
+
+    expect(auction.rejectedBidHistory).toHaveLength(1);
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-002");
+    expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-002");
+    expect(auction.rejectedBidHistory[0]?.amount.value).toBe(104999);
+    expect(auction.rejectedBidHistory[0]?.reason).toBe(
+      "Bid must be greater than or equal to current highest bid plus minimum increment",
+    );
   });
 
   it("RN-09 should reject a bid equal to the current highest bid", () => {
@@ -377,7 +409,7 @@ describe("Auction", () => {
     expect(auction.bidHistory).toHaveLength(1);
   });
 
-  it("RN-10 should reject a bid from the current highest bidder", () => {
+  it("RN-10 and RN-12 should reject and record a bid from the current highest bidder", () => {
     const auction = Auction.publish(
       AuctionId.create("auction-001"),
       UserId.create("seller-001"),
@@ -412,6 +444,13 @@ describe("Auction", () => {
     );
 
     expect(auction.bidHistory).toHaveLength(1);
-    expect(auction.bidHistory[0]?.bidder.value).toBe("bidder-001");
+
+    expect(auction.rejectedBidHistory).toHaveLength(1);
+    expect(auction.rejectedBidHistory[0]?.id.value).toBe("bid-002");
+    expect(auction.rejectedBidHistory[0]?.bidder.value).toBe("bidder-001");
+    expect(auction.rejectedBidHistory[0]?.amount.value).toBe(105000);
+    expect(auction.rejectedBidHistory[0]?.reason).toBe(
+      "Highest bidder cannot outbid own leading bid",
+    );
   });
 });
