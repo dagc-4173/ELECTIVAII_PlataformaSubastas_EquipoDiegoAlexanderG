@@ -73,4 +73,24 @@ describe("Auction", () => {
       "2026-09-04T18:00:00.000Z",
     );
   });
+  
+  it("RN-04 should cancel an auction when it has no bids", () => {
+    const auction = Auction.publish(
+        AuctionId.create("auction-001"),
+        UserId.create("seller-001"),
+        ItemId.create("item-001"),
+        CategoryId.create("category-001"),
+        AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+        ),
+    );
+
+    auction.cancel();
+
+    expect(auction.status.value).toBe("CANCELLED");
+    expect(auction.bidHistory).toHaveLength(0);
+  });
 });

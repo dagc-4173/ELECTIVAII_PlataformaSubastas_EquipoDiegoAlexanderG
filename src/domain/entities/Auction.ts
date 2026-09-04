@@ -4,6 +4,7 @@ import { AuctionStatus } from "../value-objects/AuctionStatus.js";
 import { CategoryId } from "../value-objects/CategoryId.js";
 import { ItemId } from "../value-objects/ItemId.js";
 import { UserId } from "../value-objects/UserId.js";
+import { Bid } from "./Bid.js";
 
 export class Auction {
   private constructor(
@@ -13,6 +14,7 @@ export class Auction {
     private readonly categoryId: CategoryId,
     private readonly publicationData: AuctionPublicationData,
     private statusValue: AuctionStatus,
+    private readonly bids: Bid[],
   ) {}
 
   static publish(
@@ -29,8 +31,17 @@ export class Auction {
       categoryId,
       publicationData,
       AuctionStatus.open(),
+      [],
     );
   }
+
+  cancel(): void {
+    if (this.bids.length > 0) {
+        throw new Error("Auction with bids cannot be cancelled");
+    }
+
+    this.statusValue = AuctionStatus.cancelled();
+    }
 
   get id(): AuctionId {
     return this.auctionId;
@@ -54,5 +65,8 @@ export class Auction {
 
   get status(): AuctionStatus {
     return this.statusValue;
+  }
+  get bidHistory(): readonly Bid[] {
+    return [...this.bids];
   }
 }
