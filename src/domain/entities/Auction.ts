@@ -220,7 +220,10 @@ export class Auction {
   }
 
   get winner(): UserId | undefined {
-    if (!this.statusValue.equals(AuctionStatus.closed())) {
+    if (
+      !this.statusValue.equals(AuctionStatus.closed()) &&
+      !this.statusValue.equals(AuctionStatus.defaulted())
+    ) {
       return undefined;
     }
 

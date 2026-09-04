@@ -750,5 +750,39 @@ describe("Auction", () => {
     expect(auction.paymentOrder?.amount.value).toBe(100000);
   });
 
+  it("RN-20 should expire the payment order and mark the auction as defaulted", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
 
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
+    );
+
+    auction.close(
+      new Date("2026-09-04T18:00:00.000Z"),
+      PaymentOrderId.create("payment-order-001"),
+    );
+
+    auction.expirePayment(new Date("2026-09-06T18:00:00.000Z"));
+
+    expect(auction.paymentOrder?.status.value).toBe("EXPIRED");
+    expect(auction.status.value).toBe("DEFAULTED");
+    expect(auction.winner?.value).toBe("bidder-001");
+  });
 });
