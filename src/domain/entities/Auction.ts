@@ -152,6 +152,15 @@ export class Auction {
     this.statusValue = AuctionStatus.closed();
   }
 
+  expirePayment(currentDate: Date): void {
+    if (this.paymentOrderValue === undefined) {
+      throw new Error("Auction does not have a payment order");
+    }
+
+    this.paymentOrderValue.expire(currentDate);
+    this.statusValue = AuctionStatus.defaulted();
+  }
+
   get id(): AuctionId {
     return this.auctionId;
   }

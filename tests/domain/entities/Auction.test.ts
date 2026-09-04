@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { Auction } from "../../../src/domain/entities/Auction.js";
+import { Bid } from "../../../src/domain/entities/Bid.js";
 import { AuctionId } from "../../../src/domain/value-objects/AuctionId.js";
 import { AuctionPublicationData } from "../../../src/domain/value-objects/AuctionPublicationData.js";
+import { BidId } from "../../../src/domain/value-objects/BidId.js";
 import { CategoryId } from "../../../src/domain/value-objects/CategoryId.js";
 import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
 import { Money } from "../../../src/domain/value-objects/Money.js";
-import { UserId } from "../../../src/domain/value-objects/UserId.js";
-import { Bid } from "../../../src/domain/entities/Bid.js";
-import { BidId } from "../../../src/domain/value-objects/BidId.js";
 import { PaymentOrderId } from "../../../src/domain/value-objects/PaymentOrderId.js";
+import { UserId } from "../../../src/domain/value-objects/UserId.js";
 
 describe("Auction", () => {
   it("should publish an auction with valid data", () => {
@@ -663,4 +663,6 @@ describe("Auction", () => {
     expect(auction.paymentOrder?.winner.value).toBe("bidder-001");
     expect(auction.paymentOrder?.amount.value).toBe(100000);
   });
+
+
 });
