@@ -453,4 +453,36 @@ describe("Auction", () => {
       "Highest bidder cannot outbid own leading bid",
     );
   });
+
+  it("RN-11 should keep an accepted bid irrevocably in the auction history", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-03T19:00:00.000Z"),
+      ),
+    );
+
+    const externalHistory = auction.bidHistory;
+
+    expect(externalHistory).toHaveLength(1);
+    expect(externalHistory[0]?.id.value).toBe("bid-001");
+
+    expect(auction.bidHistory).toHaveLength(1);
+    expect(auction.bidHistory[0]?.id.value).toBe("bid-001");
+  });
 });
