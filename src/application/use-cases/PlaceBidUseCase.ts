@@ -18,6 +18,7 @@ export interface PlaceBidInput {
   amount: number;
   placedAt: Date;
   rejectedBidAttemptId: string;
+  currentDate: Date;
 }
 
 export class PlaceBidUseCase {
@@ -36,7 +37,7 @@ export class PlaceBidUseCase {
     }
 
     const hasExpired =
-      input.placedAt.getTime() >= auction.publication.closesAt.getTime();
+      input.currentDate.getTime() >= auction.publication.closesAt.getTime();
 
     const isOpen = auction.status.equals(AuctionStatus.open());
 
@@ -46,7 +47,7 @@ export class PlaceBidUseCase {
           ? undefined
           : PaymentOrderId.create(this.idGenerator.generate());
 
-      auction.close(input.placedAt, paymentOrderId);
+      auction.close(input.currentDate, paymentOrderId);
 
       await this.auctionRepository.save(auction);
     }

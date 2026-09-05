@@ -7,8 +7,17 @@ export class InMemoryUserRepository implements UserRepository {
   private readonly users: User[] = [];
 
   async save(user: User): Promise<void> {
-    const existingIndex = this.users.findIndex(
-      (currentUser) => currentUser.id.equals(user.id),
+    const userWithSameEmail = this.users.find(
+      (currentUser) =>
+        currentUser.email.equals(user.email) && !currentUser.id.equals(user.id),
+    );
+
+    if (userWithSameEmail !== undefined) {
+      throw new Error("Email is already registered");
+    }
+
+    const existingIndex = this.users.findIndex((currentUser) =>
+      currentUser.id.equals(user.id),
     );
 
     if (existingIndex >= 0) {
@@ -20,16 +29,10 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   async findById(id: UserId): Promise<User | null> {
-    return (
-      this.users.find((user) => user.id.equals(id)) ??
-      null
-    );
+    return this.users.find((user) => user.id.equals(id)) ?? null;
   }
 
   async findByEmail(email: Email): Promise<User | null> {
-    return (
-      this.users.find((user) => user.email.equals(email)) ??
-      null
-    );
+    return this.users.find((user) => user.email.equals(email)) ?? null;
   }
 }

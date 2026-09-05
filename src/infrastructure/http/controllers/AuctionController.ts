@@ -90,6 +90,7 @@ export class AuctionController {
       amount: request.body.amount,
       placedAt: new Date(request.body.placedAt),
       rejectedBidAttemptId: request.body.rejectedBidAttemptId,
+      currentDate: new Date(),
     };
 
     const auction = await this.placeBidUseCase.execute(input);

@@ -46,4 +46,33 @@ describe("PublishAuctionUseCase", () => {
 
     expect(storedAuction).toBe(auction);
   });
+
+  it("should reject publishing an auction with an existing auction ID", async () => {
+    const repository = new FakeAuctionRepository();
+    const useCase = new PublishAuctionUseCase(repository);
+
+    const input = {
+      auctionId: "auction-001",
+      sellerId: "seller-001",
+      itemId: "item-001",
+      categoryId: "category-001",
+      basePrice: 100000,
+      minimumIncrement: 5000,
+      publishedAt: new Date("2026-09-04T12:00:00.000Z"),
+      closesAt: new Date("2026-09-05T12:00:00.000Z"),
+    };
+
+    await useCase.execute(input);
+
+    await expect(
+      useCase.execute({
+        ...input,
+        sellerId: "seller-002",
+      }),
+    ).rejects.toThrow("Auction ID is already registered");
+
+    const auctions = await repository.findAll();
+
+    expect(auctions).toHaveLength(1);
+  });
 });

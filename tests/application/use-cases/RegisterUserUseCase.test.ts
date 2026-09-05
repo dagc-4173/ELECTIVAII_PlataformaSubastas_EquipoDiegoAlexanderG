@@ -4,6 +4,7 @@ import { RegisterUserUseCase } from "../../../src/application/use-cases/Register
 import { InMemoryUserRepository } from "../../../src/infrastructure/persistence/memory/InMemoryUserRepository.js";
 import { Email } from "../../../src/domain/value-objects/Email.js";
 import type { PasswordHasher } from "../../../src/application/ports/PasswordHasher.js";
+import { UserId } from "../../../src/domain/value-objects/UserId.js";
 
 class FakePasswordHasher implements PasswordHasher {
   async hash(password: string): Promise<string> {
@@ -84,5 +85,32 @@ describe("RegisterUserUseCase - RN-22", () => {
 
     expect(storedUser).toBe(originalUser);
     expect(storedUser?.id.value).toBe("user-001");
+  });
+
+  it("should reject registering a user with an existing user ID", async () => {
+    const repository = new InMemoryUserRepository();
+    const passwordHasher = new FakePasswordHasher();
+    const useCase = new RegisterUserUseCase(repository, passwordHasher);
+
+    await useCase.execute({
+      userId: "user-001",
+      name: "Diego",
+      email: "diego@example.com",
+      password: "secret123",
+    });
+
+    await expect(
+      useCase.execute({
+        userId: "user-001",
+        name: "Alexander",
+        email: "alexander@example.com",
+        password: "anotherPassword",
+      }),
+    ).rejects.toThrow("User ID is already registered");
+
+    const storedUser = await repository.findById(UserId.create("user-001"));
+
+    expect(storedUser?.name).toBe("Diego");
+    expect(storedUser?.email.value).toBe("diego@example.com");
   });
 });

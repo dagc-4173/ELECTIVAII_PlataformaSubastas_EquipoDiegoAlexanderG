@@ -18,22 +18,24 @@ export class RegisterUserUseCase {
   ) {}
 
   async execute(input: RegisterUserInput): Promise<User> {
+    const userId = UserId.create(input.userId);
     const email = Email.create(input.email);
 
-    const existingUser = await this.userRepository.findByEmail(email);
+    const existingUserById = await this.userRepository.findById(userId);
 
-    if (existingUser !== null) {
+    if (existingUserById !== null) {
+      throw new Error("User ID is already registered");
+    }
+
+    const existingUserByEmail = await this.userRepository.findByEmail(email);
+
+    if (existingUserByEmail !== null) {
       throw new Error("Email is already registered");
     }
 
     const passwordHash = await this.passwordHasher.hash(input.password);
 
-    const user = User.create(
-      UserId.create(input.userId),
-      input.name,
-      email,
-      passwordHash,
-    );
+    const user = User.create(userId, input.name, email, passwordHash);
 
     await this.userRepository.save(user);
 

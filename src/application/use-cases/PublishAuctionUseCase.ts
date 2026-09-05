@@ -22,6 +22,14 @@ export class PublishAuctionUseCase {
   constructor(private readonly auctionRepository: AuctionRepository) {}
 
   async execute(input: PublishAuctionInput): Promise<Auction> {
+    const auctionId = AuctionId.create(input.auctionId);
+
+    const existingAuction = await this.auctionRepository.findById(auctionId);
+
+    if (existingAuction !== null) {
+      throw new Error("Auction ID is already registered");
+    }
+
     const publicationData = AuctionPublicationData.create(
       Money.create(input.basePrice),
       Money.create(input.minimumIncrement),
@@ -30,7 +38,7 @@ export class PublishAuctionUseCase {
     );
 
     const auction = Auction.publish(
-      AuctionId.create(input.auctionId),
+      auctionId,
       UserId.create(input.sellerId),
       ItemId.create(input.itemId),
       CategoryId.create(input.categoryId),

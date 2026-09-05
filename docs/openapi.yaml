@@ -195,6 +195,26 @@ paths:
 
 components:
   schemas:
+    UserResponse:
+      type: object
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: string
+          example: user-001
+
+        name:
+          type: string
+          example: Diego
+
+        email:
+          type: string
+          format: email
+          example: diego@example.com
+
     RegisterUserRequest:
       type: object
       required:
@@ -305,7 +325,7 @@ components:
 
     AuctionResponse:
       type: object
-      required:
+            required:
         - id
         - sellerId
         - itemId
@@ -315,6 +335,7 @@ components:
         - publishedAt
         - closesAt
         - status
+        - currentBidAmount
         - bids
         - rejectedBidAttempts
       properties:
@@ -358,6 +379,12 @@ components:
             - CLOSED
             - DESERTED
             - DEFAULTED
+        
+        currentBidAmount:
+          type: integer
+          nullable: true
+          example: 105000
+          description: Monto de la puja vigente. Es null cuando aún no existen pujas aceptadas.
 
         bids:
           type: array
