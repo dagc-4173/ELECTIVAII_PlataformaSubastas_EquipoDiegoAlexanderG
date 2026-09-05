@@ -8,6 +8,7 @@ import { Money } from "../../domain/value-objects/Money.js";
 import { PaymentOrderId } from "../../domain/value-objects/PaymentOrderId.js";
 import { RejectedBidAttemptId } from "../../domain/value-objects/RejectedBidAttemptId.js";
 import { UserId } from "../../domain/value-objects/UserId.js";
+import { NotFoundError } from "../errors/NotFoundError.js";
 
 export interface PlaceBidInput {
   auctionId: string;
@@ -28,7 +29,7 @@ export class PlaceBidUseCase {
     );
 
     if (auction === null) {
-      throw new Error("Auction not found");
+      throw new NotFoundError("Auction not found");
     }
 
     const hasExpired =
