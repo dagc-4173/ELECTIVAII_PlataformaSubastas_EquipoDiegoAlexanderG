@@ -177,9 +177,11 @@ La implementación concreta del repositorio pertenece a infraestructura.
 
 ```text
 IdGenerator
+PasswordHasher
 ```
+`PasswordHasher` permite que el caso de uso de registro solicite el hash de una contraseña sin depender de una implementación concreta de seguridad.
 
-Este puerto permite generar identificadores sin acoplar los casos de uso a una implementación concreta.
+`IdGenerator` permite generar identificadores sin acoplar los casos de uso a una implementación concreta.
 
 ---
 
@@ -204,6 +206,10 @@ Responsabilidades:
 - generación concreta de identificadores;
 - composición de dependencias.
 
+### Seguridad
+
+`ScryptPasswordHasher` implementa `PasswordHasher` mediante `scrypt` de `node:crypto`, con una sal aleatoria por contraseña. Rechaza contraseñas vacías y almacena la sal y el hash; la respuesta HTTP de registro no incluye ninguno de estos valores.
+
 ### Persistencia en memoria
 
 Actualmente existen:
@@ -212,6 +218,8 @@ Actualmente existen:
 InMemoryAuctionRepository
 InMemoryUserRepository
 ```
+
+Los datos se pierden al reiniciar el servidor y no se comparten entre procesos.
 
 Estas clases implementan los puertos del dominio y permiten sustituir la persistencia en futuras entregas sin modificar el dominio ni los casos de uso.
 
@@ -275,10 +283,10 @@ Ingresar al proyecto:
 cd ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG
 ```
 
-Instalar dependencias:
+Instalar las dependencias del archivo de bloqueo:
 
 ```bash
-npm install
+npm ci
 ```
 
 ---
@@ -305,6 +313,21 @@ Para desarrollo local puede crearse un archivo:
 
 ```text
 .env
+```
+
+El servidor lee `process.env.PORT`, pero los scripts de npm no cargan `.env` automáticamente. Para usar ese archivo después de compilar:
+
+```powershell
+Copy-Item .env.example .env
+npm run build
+node --env-file=.env dist/server.js
+```
+
+También puede definirse la variable directamente en PowerShell:
+
+```powershell
+$env:PORT = "3001"
+npm start
 ```
 
 No deben almacenarse credenciales reales dentro del repositorio.
@@ -341,7 +364,10 @@ dist/
 
 ## Ejecución
 
+Compilar antes de iniciar el servidor, también después de modificar el código:
+
 ```bash
+npm run build
 npm start
 ```
 
@@ -352,6 +378,24 @@ http://localhost:3000
 ```
 
 si no se define otra variable `PORT`.
+
+## Desarrollo con recarga
+
+Ejecutar `npm run build` una vez y abrir dos terminales en la carpeta del proyecto:
+
+```bash
+# Terminal 1: recompila al guardar cambios
+npm run dev:build
+```
+
+```bash
+# Terminal 2: reinicia el servidor cuando cambia dist/
+npm run dev:server
+```
+
+Cada reinicio vacía los repositorios en memoria.
+
+En Windows, si PowerShell bloquea `npm.ps1`, utilizar `npm.cmd` en los comandos anteriores (por ejemplo, `npm.cmd run build`).
 
 ## Pruebas
 
@@ -365,7 +409,47 @@ Las pruebas utilizan Vitest.
 
 # API REST
 
-La API está diseñada alrededor de recursos.
+La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`.
+
+| Método | Ruta | Resultado exitoso |
+|---|---|---|
+| POST | `/users` | `201`: usuario registrado |
+| POST | `/auctions` | `201`: subasta publicada |
+| GET | `/auctions` | `200`: listado paginado |
+| GET | `/auctions/{auctionId}` | `200`: detalle e historial |
+| POST | `/auctions/{auctionId}/bids` | `201`: subasta con la puja aceptada |
+| DELETE | `/auctions/{auctionId}` | `200`: subasta cancelada |
+
+Los identificadores de usuarios, subastas, artículos, categorías, pujas e intentos rechazados se envían desde el cliente. Actualmente no hay autenticación ni comprobación de existencia del vendedor, postor, artículo o categoría al operar una subasta.
+
+## Usuarios
+
+### Registrar un usuario
+
+```http
+POST /users
+```
+
+```json
+{
+  "userId": "seller-001",
+  "name": "Diego",
+  "email": "diego@example.com",
+  "password": "clave-de-ejemplo"
+}
+```
+
+Respuesta `201 Created`:
+
+```json
+{
+  "id": "seller-001",
+  "name": "Diego",
+  "email": "diego@example.com"
+}
+```
+
+Un correo ya registrado produce `400` con código `BUSINESS_RULE_VIOLATION` y mensaje `Email is already registered`. El registro no inicia una sesión ni devuelve un token.
 
 ## Subastas
 
@@ -375,7 +459,7 @@ La API está diseñada alrededor de recursos.
 POST /auctions
 ```
 
-Ejemplo de cuerpo:
+Ejemplo de cuerpo (ajustar las fechas al momento de la prueba para mantener la subasta abierta; la duración permitida es de 1 hora a 30 días):
 
 ```json
 {
@@ -404,7 +488,7 @@ Respuesta exitosa:
 GET /auctions
 ```
 
-Permite filtros y paginación.
+Permite filtros y paginación. `page` vale `1` y `pageSize` vale `10` por defecto; ambos deben ser enteros positivos. Los estados del dominio son `OPEN`, `CLOSED`, `CANCELLED`, `DESERTED` y `DEFAULTED`.
 
 Parámetros disponibles:
 
@@ -477,7 +561,7 @@ Ejemplo:
 DELETE /auctions/{auctionId}
 ```
 
-La operación puede ser rechazada por las reglas de negocio.
+La operación cambia el estado a `CANCELLED`; no elimina el recurso. Devuelve la representación de la subasta y puede ser rechazada por las reglas de negocio.
 
 Por ejemplo, RN-04 impide cancelar una subasta que ya tenga pujas.
 
@@ -496,7 +580,7 @@ La API utiliza un formato uniforme:
 }
 ```
 
-Ejemplo para recursos inexistentes:
+Ejemplo para una subasta inexistente al pujar o cancelar:
 
 ```json
 {
@@ -511,6 +595,8 @@ Ejemplo para recursos inexistentes:
 
 # Códigos HTTP
 
+En la consulta `GET /auctions/{auctionId}`, una subasta inexistente devuelve `404` con código `AUCTION_NOT_FOUND` y mensaje `Auction not found`.
+
 Entre los principales códigos utilizados se encuentran:
 
 ```text
@@ -518,6 +604,7 @@ Entre los principales códigos utilizados se encuentran:
 201 Created
 400 Bad Request
 404 Not Found
+500 Internal Server Error
 ```
 
 Una violación de una regla de negocio no devuelve un código HTTP de éxito.
@@ -530,7 +617,9 @@ El proyecto utiliza cierre perezoso.
 
 No existe un proceso programado que cierre automáticamente las subastas.
 
-Cuando una subasta es consultada o recibe un intento de puja, la aplicación verifica si alcanzó su fecha de cierre.
+Al consultar una subasta por ID, la aplicación compara el cierre con la hora del servidor. Al intentar pujar, compara el cierre con `placedAt`, enviado por el cliente. El listado `GET /auctions` no ejecuta el cierre perezoso.
+
+`CloseAuctionUseCase` existe, pero no tiene una ruta HTTP propia. La expiración de pagos está modelada en el dominio y no se ejecuta automáticamente ni dispone de endpoint.
 
 Si ya venció:
 
@@ -565,6 +654,8 @@ La trazabilidad completa de RN-01 a RN-23 se encuentra en:
 ```text
 docs/business-rules-traceability.md
 ```
+
+Nota: la matriz todavía marca RN-22 como pendiente, aunque `RegisterUserUseCase` ya verifica la unicidad del correo y cuenta con pruebas.
 
 Este documento permite identificar para cada regla:
 
@@ -645,7 +736,7 @@ RegisterUserUseCase
 
 ## Infrastructure
 
-Incluye pruebas de los adaptadores de persistencia en memoria.
+Incluye pruebas del repositorio de subastas en memoria y de `ScryptPasswordHasher`. No hay actualmente pruebas HTTP de integración.
 
 Las pruebas están diseñadas para demostrar reglas de negocio y comportamiento funcional, no únicamente para aumentar cobertura.
 
@@ -729,6 +820,8 @@ final
 │   │   │   ├── middlewares/
 │   │   │   └── routes/
 │   │   ├── id/
+│   │   ├── security/
+│   │   ├── app.ts
 │   │   └── persistence/
 │   │       └── memory/
 │   │
@@ -766,7 +859,8 @@ Actualmente se encuentra implementado:
 - registro de usuario con validación de correo único;
 - filtros por categoría y estado;
 - paginación;
-- API REST de subastas;
+- API REST de subastas y registro de usuarios;
+- hash de contraseñas con `scrypt`;
 - DTOs HTTP;
 - manejo uniforme de errores;
 - configuración del puerto mediante variable de entorno;

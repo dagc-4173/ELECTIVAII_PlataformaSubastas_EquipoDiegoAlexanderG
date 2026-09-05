@@ -14,8 +14,31 @@ servers:
 tags:
   - name: Auctions
     description: Operaciones relacionadas con subastas
+  - name: Users
+    description: Operaciones relacionadas con usuarios
 
 paths:
+  /users:
+    post:
+      tags:
+        - Users
+      summary: Registrar un nuevo usuario
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserRequest"
+      responses:
+        "201":
+          description: Usuario registrado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BusinessRuleViolation"
   /auctions:
     post:
       tags:
@@ -172,6 +195,32 @@ paths:
 
 components:
   schemas:
+    RegisterUserRequest:
+      type: object
+      required:
+        - userId
+        - name
+        - email
+        - password
+      properties:
+        userId:
+          type: string
+          example: user-001
+
+        name:
+          type: string
+          example: Diego
+
+        email:
+          type: string
+          format: email
+          example: diego@example.com
+
+        password:
+          type: string
+          format: password
+          example: "securePassword123"
+
     PublishAuctionRequest:
       type: object
       required:
@@ -440,7 +489,7 @@ components:
           example:
             error:
               code: BUSINESS_RULE_VIOLATION
-              message: Auction with bids cannot be cancelled
+              message: Email is already registered
 
     ResourceNotFound:
       description: El recurso solicitado no existe

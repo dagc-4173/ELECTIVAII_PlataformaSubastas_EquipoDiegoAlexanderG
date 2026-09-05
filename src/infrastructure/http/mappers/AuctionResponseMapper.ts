@@ -10,6 +10,7 @@ export interface AuctionResponse {
   publishedAt: string;
   closesAt: string;
   status: string;
+  currentBidAmount: number | null;
   bids: {
     id: string;
     bidderId: string;
@@ -27,6 +28,13 @@ export interface AuctionResponse {
 
 export class AuctionResponseMapper {
   static toResponse(auction: Auction): AuctionResponse {
+    const bidHistory = auction.bidHistory;
+
+    const currentBid =
+      bidHistory.length === 0
+        ? null
+        : (bidHistory[bidHistory.length - 1] ?? null);
+
     return {
       id: auction.id.value,
       sellerId: auction.seller.value,
@@ -37,6 +45,8 @@ export class AuctionResponseMapper {
       publishedAt: auction.publication.publishedAt.toISOString(),
       closesAt: auction.publication.closesAt.toISOString(),
       status: auction.status.value,
+
+      currentBidAmount: currentBid === null ? null : currentBid.amount.value,
 
       bids: auction.bidHistory.map((bid) => ({
         id: bid.id.value,

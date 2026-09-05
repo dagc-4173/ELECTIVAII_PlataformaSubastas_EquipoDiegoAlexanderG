@@ -37,6 +37,8 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   if (error instanceof Error) {
+    console.error("Application error:", error);
+
     response.status(400).json({
       error: {
         code: "BUSINESS_RULE_VIOLATION",

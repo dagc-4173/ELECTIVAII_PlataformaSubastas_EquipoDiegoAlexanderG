@@ -61,6 +61,8 @@ export class AuctionController {
       closesAt: new Date(request.body.closesAt),
     });
 
+    console.log(`Auction published: ${auction.id.value}`);
+
     response.status(201).json(AuctionResponseMapper.toResponse(auction));
   };
 
@@ -71,6 +73,8 @@ export class AuctionController {
     const auction = await this.cancelAuctionUseCase.execute(
       request.params.auctionId,
     );
+
+    console.log(`Auction cancelled: ${auction.id.value}`);
 
     response.status(200).json(AuctionResponseMapper.toResponse(auction));
   };
@@ -89,6 +93,8 @@ export class AuctionController {
     };
 
     const auction = await this.placeBidUseCase.execute(input);
+
+    console.log(`Bid accepted for auction: ${auction.id.value}`);
 
     response.status(201).json(AuctionResponseMapper.toResponse(auction));
   };

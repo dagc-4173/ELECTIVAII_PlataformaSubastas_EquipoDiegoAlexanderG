@@ -20,6 +20,8 @@ export class UserController {
   ): Promise<void> => {
     const user = await this.registerUserUseCase.execute(request.body);
 
+    console.log(`User registered: ${user.id.value}`);
+
     response.status(201).json({
       id: user.id.value,
       name: user.name,
