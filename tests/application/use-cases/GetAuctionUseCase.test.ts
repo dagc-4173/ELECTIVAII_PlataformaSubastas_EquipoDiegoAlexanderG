@@ -13,6 +13,12 @@ import { Bid } from "../../../src/domain/entities/Bid.js";
 import { BidId } from "../../../src/domain/value-objects/BidId.js";
 import { RejectedBidAttemptId } from "../../../src/domain/value-objects/RejectedBidAttemptId.js";
 
+class FakeIdGenerator {
+  generate(): string {
+    return "payment-order-001";
+  }
+}
+
 function createAuction(): Auction {
   return Auction.publish(
     AuctionId.create("auction-001"),
@@ -35,7 +41,7 @@ describe("GetAuctionUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new GetAuctionUseCase(repository);
+    const useCase = new GetAuctionUseCase(repository, new FakeIdGenerator());
 
     const result = await useCase.execute({
       auctionId: "auction-001",
@@ -47,7 +53,7 @@ describe("GetAuctionUseCase", () => {
 
   it("should return null when the auction does not exist", async () => {
     const repository = new InMemoryAuctionRepository();
-    const useCase = new GetAuctionUseCase(repository);
+    const useCase = new GetAuctionUseCase(repository, new FakeIdGenerator());
 
     const result = await useCase.execute({
       auctionId: "auction-404",
@@ -63,7 +69,7 @@ describe("GetAuctionUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new GetAuctionUseCase(repository);
+    const useCase = new GetAuctionUseCase(repository, new FakeIdGenerator());
 
     const result = await useCase.execute({
       auctionId: "auction-001",
@@ -89,16 +95,43 @@ describe("GetAuctionUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new GetAuctionUseCase(repository);
+    const useCase = new GetAuctionUseCase(repository, new FakeIdGenerator());
 
     const result = await useCase.execute({
       auctionId: "auction-001",
       currentDate: new Date("2026-09-05T12:00:00.000Z"),
-      paymentOrderId: "payment-order-001",
     });
 
     expect(result?.status.value).toBe("CLOSED");
     expect(result?.winner?.value).toBe("bidder-001");
     expect(result?.paymentOrder).toBeDefined();
+  });
+
+  it("should generate a payment order id when lazily closing an auction with bids", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const auction = createAuction();
+
+    auction.placeBid(
+      Bid.create(
+        BidId.create("bid-001"),
+        UserId.create("bidder-001"),
+        Money.create(100000),
+        new Date("2026-09-04T13:00:00.000Z"),
+      ),
+      RejectedBidAttemptId.create("rejected-attempt-001"),
+    );
+
+    await repository.save(auction);
+
+    const useCase = new GetAuctionUseCase(repository, new FakeIdGenerator());
+
+    const result = await useCase.execute({
+      auctionId: "auction-001",
+      currentDate: new Date("2026-09-05T12:00:00.000Z"),
+    });
+
+    expect(result?.status.value).toBe("CLOSED");
+    expect(result?.paymentOrder?.id.value).toBe("payment-order-001");
+    expect(result?.winner?.value).toBe("bidder-001");
   });
 });

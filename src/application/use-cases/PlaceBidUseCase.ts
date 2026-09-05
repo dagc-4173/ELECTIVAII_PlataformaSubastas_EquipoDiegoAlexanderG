@@ -9,6 +9,7 @@ import { PaymentOrderId } from "../../domain/value-objects/PaymentOrderId.js";
 import { RejectedBidAttemptId } from "../../domain/value-objects/RejectedBidAttemptId.js";
 import { UserId } from "../../domain/value-objects/UserId.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
+import type { IdGenerator } from "../ports/IdGenerator.js";
 
 export interface PlaceBidInput {
   auctionId: string;
@@ -17,11 +18,13 @@ export interface PlaceBidInput {
   amount: number;
   placedAt: Date;
   rejectedBidAttemptId: string;
-  paymentOrderId?: string;
 }
 
 export class PlaceBidUseCase {
-  constructor(private readonly auctionRepository: AuctionRepository) {}
+  constructor(
+    private readonly auctionRepository: AuctionRepository,
+    private readonly idGenerator: IdGenerator,
+  ) {}
 
   async execute(input: PlaceBidInput): Promise<Auction> {
     const auction = await this.auctionRepository.findById(
@@ -33,16 +36,15 @@ export class PlaceBidUseCase {
     }
 
     const hasExpired =
-      input.placedAt.getTime() >=
-      auction.publication.closesAt.getTime();
+      input.placedAt.getTime() >= auction.publication.closesAt.getTime();
 
     const isOpen = auction.status.equals(AuctionStatus.open());
 
     if (hasExpired && isOpen) {
       const paymentOrderId =
-        input.paymentOrderId === undefined
+        auction.bidHistory.length === 0
           ? undefined
-          : PaymentOrderId.create(input.paymentOrderId);
+          : PaymentOrderId.create(this.idGenerator.generate());
 
       auction.close(input.placedAt, paymentOrderId);
 

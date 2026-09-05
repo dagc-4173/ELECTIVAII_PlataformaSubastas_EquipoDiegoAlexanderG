@@ -13,6 +13,12 @@ import { Bid } from "../../../src/domain/entities/Bid.js";
 import { BidId } from "../../../src/domain/value-objects/BidId.js";
 import { RejectedBidAttemptId } from "../../../src/domain/value-objects/RejectedBidAttemptId.js";
 
+class FakeIdGenerator {
+  generate(): string {
+    return "payment-order-001";
+  }
+}
+
 function createAuction(): Auction {
   return Auction.publish(
     AuctionId.create("auction-001"),
@@ -35,7 +41,7 @@ describe("PlaceBidUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new PlaceBidUseCase(repository);
+    const useCase = new PlaceBidUseCase(repository, new FakeIdGenerator());
 
     const result = await useCase.execute({
       auctionId: "auction-001",
@@ -58,7 +64,7 @@ describe("PlaceBidUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new PlaceBidUseCase(repository);
+    const useCase = new PlaceBidUseCase(repository, new FakeIdGenerator());
 
     await expect(
       useCase.execute({
@@ -80,7 +86,7 @@ describe("PlaceBidUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new PlaceBidUseCase(repository);
+    const useCase = new PlaceBidUseCase(repository, new FakeIdGenerator());
 
     await expect(
       useCase.execute({
@@ -102,7 +108,7 @@ describe("PlaceBidUseCase", () => {
 
   it("should reject when auction does not exist", async () => {
     const repository = new InMemoryAuctionRepository();
-    const useCase = new PlaceBidUseCase(repository);
+    const useCase = new PlaceBidUseCase(repository, new FakeIdGenerator());
 
     await expect(
       useCase.execute({
@@ -122,7 +128,7 @@ describe("PlaceBidUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new PlaceBidUseCase(repository);
+    const useCase = new PlaceBidUseCase(repository, new FakeIdGenerator());
 
     await expect(
       useCase.execute({
@@ -150,7 +156,7 @@ describe("PlaceBidUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new PlaceBidUseCase(repository);
+    const useCase = new PlaceBidUseCase(repository, new FakeIdGenerator());
 
     await expect(
       useCase.execute({
@@ -188,7 +194,7 @@ describe("PlaceBidUseCase", () => {
 
     await repository.save(auction);
 
-    const useCase = new PlaceBidUseCase(repository);
+    const useCase = new PlaceBidUseCase(repository, new FakeIdGenerator());
 
     await expect(
       useCase.execute({
@@ -198,7 +204,6 @@ describe("PlaceBidUseCase", () => {
         amount: 105000,
         placedAt: new Date("2026-09-05T12:00:00.000Z"),
         rejectedBidAttemptId: "rejected-attempt-002",
-        paymentOrderId: "payment-order-001",
       }),
     ).rejects.toThrow("Bids are only allowed on open auctions");
 

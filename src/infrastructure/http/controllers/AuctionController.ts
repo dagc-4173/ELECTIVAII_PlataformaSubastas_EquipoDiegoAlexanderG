@@ -28,7 +28,6 @@ interface PlaceBidBody {
   amount: number;
   placedAt: string;
   rejectedBidAttemptId: string;
-  paymentOrderId?: string;
 }
 
 export class AuctionController {
@@ -80,9 +79,6 @@ export class AuctionController {
       amount: request.body.amount,
       placedAt: new Date(request.body.placedAt),
       rejectedBidAttemptId: request.body.rejectedBidAttemptId,
-      ...(request.body.paymentOrderId !== undefined
-        ? { paymentOrderId: request.body.paymentOrderId }
-        : {}),
     };
 
     const auction = await this.placeBidUseCase.execute(input);

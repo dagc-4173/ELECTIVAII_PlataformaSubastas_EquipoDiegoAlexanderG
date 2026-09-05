@@ -10,32 +10,24 @@ import { InMemoryAuctionRepository } from "./persistence/memory/InMemoryAuctionR
 import { AuctionController } from "./http/controllers/AuctionController.js";
 import { createAuctionRouter } from "./http/routes/auctionRoutes.js";
 import { errorHandler } from "./http/middlewares/errorHandler.js";
+import { RandomIdGenerator } from "./id/RandomIdGenerator.js";
 
 const app = express();
 
 app.use(express.json());
 
 const auctionRepository = new InMemoryAuctionRepository();
+const idGenerator = new RandomIdGenerator();
 
-const publishAuctionUseCase = new PublishAuctionUseCase(
-  auctionRepository,
-);
+const publishAuctionUseCase = new PublishAuctionUseCase(auctionRepository);
 
-const getAuctionUseCase = new GetAuctionUseCase(
-  auctionRepository,
-);
+const getAuctionUseCase = new GetAuctionUseCase(auctionRepository, idGenerator);
 
-const listAuctionsUseCase = new ListAuctionsUseCase(
-  auctionRepository,
-);
+const listAuctionsUseCase = new ListAuctionsUseCase(auctionRepository);
 
-const cancelAuctionUseCase = new CancelAuctionUseCase(
-  auctionRepository,
-);
+const cancelAuctionUseCase = new CancelAuctionUseCase(auctionRepository);
 
-const placeBidUseCase = new PlaceBidUseCase(
-  auctionRepository,
-);
+const placeBidUseCase = new PlaceBidUseCase(auctionRepository, idGenerator);
 
 const auctionController = new AuctionController(
   publishAuctionUseCase,
