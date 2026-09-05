@@ -1,0 +1,454 @@
+openapi: 3.0.3
+
+info:
+  title: Plataforma de Subastas API
+  version: 1.0.0
+  description: >
+    API REST correspondiente a la Entrega 1 del proyecto
+    Plataforma de Subastas en Línea de Electiva II - Desarrollo.
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor local
+
+tags:
+  - name: Auctions
+    description: Operaciones relacionadas con subastas
+
+paths:
+  /auctions:
+    post:
+      tags:
+        - Auctions
+      summary: Publicar una nueva subasta
+      operationId: publishAuction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishAuctionRequest"
+      responses:
+        "201":
+          description: Subasta publicada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionResponse"
+        "400":
+          $ref: "#/components/responses/BusinessRuleViolation"
+
+    get:
+      tags:
+        - Auctions
+      summary: Listar subastas
+      operationId: listAuctions
+      parameters:
+        - name: categoryId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filtra por identificador de categoría
+
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - OPEN
+              - CANCELLED
+              - CLOSED
+              - DESERTED
+              - DEFAULTED
+          description: Filtra por estado de la subasta
+
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Número de página
+
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: Cantidad de elementos por página
+
+      responses:
+        "200":
+          description: Listado paginado de subastas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionListResponse"
+        "400":
+          $ref: "#/components/responses/BusinessRuleViolation"
+
+  /auctions/{auctionId}:
+    parameters:
+      - name: auctionId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Identificador de la subasta
+
+    get:
+      tags:
+        - Auctions
+      summary: Consultar una subasta por identificador
+      operationId: getAuctionById
+      responses:
+        "200":
+          description: Detalle de la subasta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionResponse"
+        "404":
+          $ref: "#/components/responses/ResourceNotFound"
+        "400":
+          $ref: "#/components/responses/BusinessRuleViolation"
+
+    delete:
+      tags:
+        - Auctions
+      summary: Cancelar una subasta
+      description: >
+        Cancela una subasta siempre que las reglas de negocio lo permitan.
+        Una subasta con pujas no puede ser cancelada.
+      operationId: cancelAuction
+      responses:
+        "200":
+          description: Subasta cancelada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionResponse"
+        "404":
+          $ref: "#/components/responses/ResourceNotFound"
+        "400":
+          $ref: "#/components/responses/BusinessRuleViolation"
+
+  /auctions/{auctionId}/bids:
+    parameters:
+      - name: auctionId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Identificador de la subasta
+
+    post:
+      tags:
+        - Auctions
+      summary: Registrar una puja
+      operationId: placeBid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceBidRequest"
+      responses:
+        "201":
+          description: Puja aceptada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionResponse"
+        "404":
+          $ref: "#/components/responses/ResourceNotFound"
+        "400":
+          $ref: "#/components/responses/BusinessRuleViolation"
+
+components:
+  schemas:
+    PublishAuctionRequest:
+      type: object
+      required:
+        - auctionId
+        - sellerId
+        - itemId
+        - categoryId
+        - basePrice
+        - minimumIncrement
+        - publishedAt
+        - closesAt
+      properties:
+        auctionId:
+          type: string
+          example: auction-001
+
+        sellerId:
+          type: string
+          example: seller-001
+
+        itemId:
+          type: string
+          example: item-001
+
+        categoryId:
+          type: string
+          example: category-001
+
+        basePrice:
+          type: integer
+          minimum: 1
+          example: 100000
+
+        minimumIncrement:
+          type: integer
+          minimum: 1
+          example: 5000
+
+        publishedAt:
+          type: string
+          format: date-time
+          example: "2026-09-05T12:00:00.000Z"
+
+        closesAt:
+          type: string
+          format: date-time
+          example: "2026-09-06T12:00:00.000Z"
+
+    PlaceBidRequest:
+      type: object
+      required:
+        - bidId
+        - bidderId
+        - amount
+        - placedAt
+        - rejectedBidAttemptId
+      properties:
+        bidId:
+          type: string
+          example: bid-001
+
+        bidderId:
+          type: string
+          example: bidder-001
+
+        amount:
+          type: integer
+          minimum: 0
+          example: 100000
+
+        placedAt:
+          type: string
+          format: date-time
+          example: "2026-09-05T13:00:00.000Z"
+
+        rejectedBidAttemptId:
+          type: string
+          description: >
+            Identificador utilizado para conservar el intento cuando
+            la puja es rechazada.
+          example: rejected-attempt-001
+
+    AuctionResponse:
+      type: object
+      required:
+        - id
+        - sellerId
+        - itemId
+        - categoryId
+        - basePrice
+        - minimumIncrement
+        - publishedAt
+        - closesAt
+        - status
+        - bids
+        - rejectedBidAttempts
+      properties:
+        id:
+          type: string
+          example: auction-001
+
+        sellerId:
+          type: string
+          example: seller-001
+
+        itemId:
+          type: string
+          example: item-001
+
+        categoryId:
+          type: string
+          example: category-001
+
+        basePrice:
+          type: integer
+          example: 100000
+
+        minimumIncrement:
+          type: integer
+          example: 5000
+
+        publishedAt:
+          type: string
+          format: date-time
+
+        closesAt:
+          type: string
+          format: date-time
+
+        status:
+          type: string
+          enum:
+            - OPEN
+            - CANCELLED
+            - CLOSED
+            - DESERTED
+            - DEFAULTED
+
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/BidResponse"
+
+        rejectedBidAttempts:
+          type: array
+          items:
+            $ref: "#/components/schemas/RejectedBidAttemptResponse"
+
+    BidResponse:
+      type: object
+      required:
+        - id
+        - bidderId
+        - amount
+        - placedAt
+      properties:
+        id:
+          type: string
+          example: bid-001
+
+        bidderId:
+          type: string
+          example: bidder-001
+
+        amount:
+          type: integer
+          example: 100000
+
+        placedAt:
+          type: string
+          format: date-time
+
+    RejectedBidAttemptResponse:
+      type: object
+      required:
+        - id
+        - bidderId
+        - amount
+        - reason
+        - attemptedAt
+      properties:
+        id:
+          type: string
+          example: rejected-attempt-001
+
+        bidderId:
+          type: string
+          example: bidder-001
+
+        amount:
+          type: integer
+          example: 99000
+
+        reason:
+          type: string
+          example: First bid must be greater than or equal to base price
+
+        attemptedAt:
+          type: string
+          format: date-time
+
+    AuctionListResponse:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuctionResponse"
+
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalItems
+        - totalPages
+      properties:
+        page:
+          type: integer
+          example: 1
+
+        pageSize:
+          type: integer
+          example: 10
+
+        totalItems:
+          type: integer
+          example: 25
+
+        totalPages:
+          type: integer
+          example: 3
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: BUSINESS_RULE_VIOLATION
+
+            message:
+              type: string
+              example: Auction with bids cannot be cancelled
+
+  responses:
+    BusinessRuleViolation:
+      description: La solicitud viola una regla o validación de la aplicación
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: BUSINESS_RULE_VIOLATION
+              message: Auction with bids cannot be cancelled
+
+    ResourceNotFound:
+      description: El recurso solicitado no existe
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: RESOURCE_NOT_FOUND
+              message: Auction not found
