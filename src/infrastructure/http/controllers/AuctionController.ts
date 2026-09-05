@@ -30,6 +30,13 @@ interface PlaceBidBody {
   rejectedBidAttemptId: string;
 }
 
+interface ListAuctionsQuery {
+  categoryId?: string;
+  status?: string;
+  page?: string;
+  pageSize?: string;
+}
+
 export class AuctionController {
   constructor(
     private readonly publishAuctionUseCase: PublishAuctionUseCase,
@@ -107,11 +114,36 @@ export class AuctionController {
     }
 
     response.status(200).json(AuctionResponseMapper.toResponse(auction));
-  }
+  };
 
-  list = async (_request: Request, response: Response): Promise<void> => {
-    const auctions = await this.listAuctionsUseCase.execute();
+  list = async (
+    request: Request<object, object, object, ListAuctionsQuery>,
+    response: Response,
+  ): Promise<void> => {
+    const page = Number(request.query.page ?? "1");
+    const pageSize = Number(request.query.pageSize ?? "10");
 
-    response.status(200).json(auctions.map((auction) => AuctionResponseMapper.toResponse(auction)));
+    const result = await this.listAuctionsUseCase.execute({
+      page,
+      pageSize,
+      ...(request.query.categoryId !== undefined
+        ? { categoryId: request.query.categoryId }
+        : {}),
+      ...(request.query.status !== undefined
+        ? { status: request.query.status }
+        : {}),
+    });
+
+    response.status(200).json({
+      items: result.items.map((auction) =>
+        AuctionResponseMapper.toResponse(auction),
+      ),
+      pagination: {
+        page: result.page,
+        pageSize: result.pageSize,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+      },
+    });
   };
 }
