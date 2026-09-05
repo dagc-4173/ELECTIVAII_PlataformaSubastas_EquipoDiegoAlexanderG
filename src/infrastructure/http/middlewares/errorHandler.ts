@@ -47,6 +47,8 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
+  console.error("Unhandled error:", error);
+
   response.status(500).json({
     error: {
       code: "INTERNAL_SERVER_ERROR",
