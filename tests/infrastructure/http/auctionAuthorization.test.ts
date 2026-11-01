@@ -125,6 +125,75 @@ describe("RF-07 - HTTP auction cancellation authorization", () => {
     expect(auction?.seller.value).toBe("seller-002");
   });
 
+  it("RN-04 should reject seller cancellation after a bid", async () => {
+    const { app, repository, tokenService } =
+      await createFixture();
+
+    const bidderToken = tokenService.generate("bidder-001");
+    const sellerToken = tokenService.generate("seller-001");
+
+    const bidResponse = await request(app)
+      .post("/auctions/auction-001/bids")
+      .set("Authorization", `Bearer ${bidderToken}`)
+      .send({
+        bidId: "bid-001",
+        amount: 100000,
+        rejectedBidAttemptId: "rejected-001",
+      });
+
+    expect(bidResponse.status).toBe(201);
+
+    const cancelResponse = await request(app)
+      .delete("/auctions/auction-001")
+      .set("Authorization", `Bearer ${sellerToken}`);
+
+    expect(cancelResponse.status).toBe(400);
+    expect(cancelResponse.body.error.code).toBe(
+      "BUSINESS_RULE_VIOLATION",
+    );
+    expect(cancelResponse.body.error.message).toBe(
+      "Auction with bids cannot be cancelled",
+    );
+
+    const auction = await repository.findById(
+      AuctionId.create("auction-001"),
+    );
+
+    expect(auction?.status.value).toBe("OPEN");
+    expect(auction?.bidHistory).toHaveLength(1);
+  });
+
+  it("RN-07 should reject a bid from the auction seller", async () => {
+    const { app, repository, tokenService } =
+      await createFixture();
+
+    const token = tokenService.generate("seller-001");
+
+    const response = await request(app)
+      .post("/auctions/auction-001/bids")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        bidId: "bid-seller-001",
+        amount: 100000,
+        rejectedBidAttemptId: "rejected-seller-001",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe(
+      "BUSINESS_RULE_VIOLATION",
+    );
+
+    const auction = await repository.findById(
+      AuctionId.create("auction-001"),
+    );
+
+    expect(auction?.bidHistory).toHaveLength(0);
+    expect(auction?.rejectedBidHistory).toHaveLength(1);
+    expect(auction?.rejectedBidHistory[0]?.reason).toBe(
+      "Seller cannot bid on own auction",
+    );
+  });
+
   it("RF-09 should use the authenticated bidder instead of the request body identity", async () => {
     const { app, repository, tokenService } =
       await createFixture();
