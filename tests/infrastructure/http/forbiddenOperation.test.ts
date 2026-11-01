@@ -31,5 +31,3 @@ describe("Forbidden operation HTTP handling", () => {
   });
 
 });
-
-

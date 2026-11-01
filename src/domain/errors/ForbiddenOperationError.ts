@@ -6,4 +6,3 @@ export class ForbiddenOperationError extends Error {
     this.name = "ForbiddenOperationError";
   }
 }
-
