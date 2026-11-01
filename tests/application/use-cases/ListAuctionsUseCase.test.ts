@@ -10,6 +10,7 @@ import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
 import { Money } from "../../../src/domain/value-objects/Money.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
 
+
 function createAuction(
   id: string,
   categoryId: string,
@@ -109,7 +110,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
       "category-001",
     );
 
-    cancelledAuction.cancel();
+    cancelledAuction.cancel(UserId.create("seller-001"));
 
     await repository.save(openAuction);
     await repository.save(cancelledAuction);
@@ -145,7 +146,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
       "category-002",
     );
 
-    auction3.cancel();
+    auction3.cancel(UserId.create("seller-001"));
 
     await repository.save(auction1);
     await repository.save(auction2);

@@ -23,9 +23,13 @@ import { JwtTokenService } from "./security/JwtTokenService.js";
 import { AuthController } from "./http/controllers/AuthController.js";
 import { createAuthRouter } from "./http/routes/authRoutes.js";
 
+import { createAuthenticate } from "./http/middlewares/authenticate.js";
+
 const app = express();
 
 app.use(express.json());
+
+
 
 const auctionRepository = new InMemoryAuctionRepository();
 const idGenerator = new RandomIdGenerator();
@@ -59,21 +63,11 @@ const auctionController = new AuctionController(
   placeBidUseCase,
 );
 
-app.use(
-  "/auctions",
-  createAuctionRouter(auctionController),
-);
-app.use(
-  "/users",
-  createUserRouter(userController),
-);
-
 const jwtSecret = process.env.JWT_SECRET;
 
 if (!jwtSecret) {
   throw new Error("JWT_SECRET environment variable is required");
 }
-
 
 const jwtExpiresInSeconds = Number(
   process.env.JWT_EXPIRES_IN_SECONDS ?? "3600",
@@ -95,7 +89,19 @@ const authController = new AuthController(
   jwtExpiresInSeconds,
 );
 
+const authenticate = createAuthenticate(tokenService);
+
 app.use("/auth", createAuthRouter(authController));
+
+app.use(
+  "/users",
+  createUserRouter(userController),
+);
+
+app.use(
+  "/auctions",
+  createAuctionRouter(auctionController, authenticate),
+);
 
 app.use(errorHandler);
 

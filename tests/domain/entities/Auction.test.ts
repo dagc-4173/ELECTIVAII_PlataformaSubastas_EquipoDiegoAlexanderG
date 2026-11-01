@@ -92,7 +92,7 @@ describe("Auction", () => {
         ),
     );
 
-    auction.cancel();
+    auction.cancel(UserId.create("seller-001"));
 
     expect(auction.status.value).toBe("CANCELLED");
     expect(auction.bidHistory).toHaveLength(0);
@@ -122,7 +122,7 @@ describe("Auction", () => {
       RejectedBidAttemptId.create("rejected-attempt-001"),
     );
 
-    expect(() => auction.cancel()).toThrow(
+    expect(() => auction.cancel(UserId.create("seller-001"))).toThrow(
       "Auction with bids cannot be cancelled",
     );
 
@@ -148,7 +148,7 @@ describe("Auction", () => {
 
     expect(auction.status.value).toBe("DESERTED");
 
-    expect(() => auction.cancel()).toThrow(
+    expect(() => auction.cancel(UserId.create("seller-001"))).toThrow(
       "Only open auctions can be cancelled",
     );
 
@@ -196,7 +196,7 @@ describe("Auction", () => {
       ),
     );
 
-    auction.cancel();
+    auction.cancel(UserId.create("seller-001"));
 
     const bid = Bid.create(
       BidId.create("bid-001"),
@@ -286,6 +286,29 @@ describe("Auction", () => {
     expect(auction.rejectedBidHistory[0]?.reason).toBe(
       "Seller cannot bid on own auction",
     );
+  });
+
+  it("RF-07 should reject cancellation by a different user", () => {
+    const auction = Auction.publish(
+      AuctionId.create("auction-001"),
+      UserId.create("seller-001"),
+      ItemId.create("item-001"),
+      CategoryId.create("category-001"),
+      AuctionPublicationData.create(
+        Money.create(100000),
+        Money.create(5000),
+        new Date("2026-09-03T18:00:00.000Z"),
+        new Date("2026-09-04T18:00:00.000Z"),
+      ),
+    );
+
+    expect(() =>
+      auction.cancel(UserId.create("user-002")),
+    ).toThrow(
+      "Only the auction seller can cancel the auction",
+    );
+
+    expect(auction.status.value).toBe("OPEN");
   });
 
   it("RN-08 should accept the first bid when it is equal to the base price", () => {

@@ -9,6 +9,7 @@ import { RejectedBidAttempt } from "./RejectedBidAttempt.js";
 import { RejectedBidAttemptId } from "../value-objects/RejectedBidAttemptId.js";
 import { PaymentOrder } from "./PaymentOrder.js";
 import { PaymentOrderId } from "../value-objects/PaymentOrderId.js";
+import { ForbiddenOperationError } from "../errors/ForbiddenOperationError.js";
 
 export class Auction {
   private constructor(
@@ -61,17 +62,29 @@ export class Auction {
     throw new Error(reason);
   }
 
-  cancel(): void {
+  
+  cancel(requesterId: UserId): void {
+    if (!requesterId.equals(this.sellerId)) {
+      throw new ForbiddenOperationError(
+        "Only the auction seller can cancel the auction",
+      );
+    }
+
     if (!this.statusValue.equals(AuctionStatus.open())) {
-      throw new Error("Only open auctions can be cancelled");
+      throw new Error(
+        "Only open auctions can be cancelled",
+      );
     }
 
     if (this.bids.length > 0) {
-      throw new Error("Auction with bids cannot be cancelled");
+      throw new Error(
+        "Auction with bids cannot be cancelled",
+      );
     }
 
     this.statusValue = AuctionStatus.cancelled();
   }
+
 
   placeBid(bid: Bid, rejectedAttemptId: RejectedBidAttemptId): void {
     if (!this.statusValue.equals(AuctionStatus.open())) {

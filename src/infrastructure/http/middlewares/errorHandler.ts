@@ -8,6 +8,8 @@ import type {
 import { ApiError } from "../errors/ApiError.js";
 import { NotFoundError } from "../../../application/errors/NotFoundError.js";
 import { InvalidCredentialsError } from "../../../application/errors/InvalidCredentialsError.js";
+import { ForbiddenOperationError } from "../../../domain/errors/ForbiddenOperationError.js";
+
 
 export const errorHandler: ErrorRequestHandler = (
   error: unknown,
@@ -48,6 +50,17 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
+  if (error instanceof ForbiddenOperationError) {
+    response.status(403).json({
+      error: {
+        code: "FORBIDDEN_OPERATION",
+        message: error.message,
+      },
+    });
+
+    return;
+  }
+
   if (error instanceof Error) {
     console.error("Application error:", error);
 
@@ -69,4 +82,5 @@ export const errorHandler: ErrorRequestHandler = (
       message: "Unexpected server error",
     },
   });
+
 };
