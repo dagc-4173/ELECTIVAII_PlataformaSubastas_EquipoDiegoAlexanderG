@@ -17,6 +17,11 @@ import { InMemoryUserRepository } from "./persistence/memory/InMemoryUserReposit
 import { ScryptPasswordHasher } from "./security/ScryptPasswordHasher.js";
 import { UserController } from "./http/controllers/UserController.js";
 import { createUserRouter } from "./http/routes/userRoutes.js";
+import "dotenv/config";
+import { LoginUserUseCase } from "../application/use-cases/LoginUserUseCase.js";
+import { JwtTokenService } from "./security/JwtTokenService.js";
+import { AuthController } from "./http/controllers/AuthController.js";
+import { createAuthRouter } from "./http/routes/authRoutes.js";
 
 const app = express();
 
@@ -62,6 +67,35 @@ app.use(
   "/users",
   createUserRouter(userController),
 );
+
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+
+
+const jwtExpiresInSeconds = Number(
+  process.env.JWT_EXPIRES_IN_SECONDS ?? "3600",
+);
+
+const tokenService = new JwtTokenService(
+  jwtSecret,
+  jwtExpiresInSeconds,
+);
+
+const loginUserUseCase = new LoginUserUseCase(
+  userRepository,
+  passwordHasher,
+);
+
+const authController = new AuthController(
+  loginUserUseCase,
+  tokenService,
+  jwtExpiresInSeconds,
+);
+
+app.use("/auth", createAuthRouter(authController));
 
 app.use(errorHandler);
 

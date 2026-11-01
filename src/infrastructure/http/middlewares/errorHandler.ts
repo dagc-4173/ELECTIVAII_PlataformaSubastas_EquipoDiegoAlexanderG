@@ -7,6 +7,7 @@ import type {
 
 import { ApiError } from "../errors/ApiError.js";
 import { NotFoundError } from "../../../application/errors/NotFoundError.js";
+import { InvalidCredentialsError } from "../../../application/errors/InvalidCredentialsError.js";
 
 export const errorHandler: ErrorRequestHandler = (
   error: unknown,
@@ -29,6 +30,17 @@ export const errorHandler: ErrorRequestHandler = (
     response.status(404).json({
       error: {
         code: "RESOURCE_NOT_FOUND",
+        message: error.message,
+      },
+    });
+
+    return;
+  }
+
+  if (error instanceof InvalidCredentialsError) {
+    response.status(401).json({
+      error: {
+        code: "INVALID_CREDENTIALS",
         message: error.message,
       },
     });
