@@ -24,9 +24,7 @@ interface AuctionParams {
 
 interface PlaceBidBody {
   bidId: string;
-  bidderId: string;
   amount: number;
-  placedAt: string;
   rejectedBidAttemptId: string;
 }
 
@@ -85,10 +83,11 @@ export class AuctionController {
     response: Response,
   ): Promise<void> => {
     const now = new Date();
+
     const input = {
       auctionId: request.params.auctionId,
       bidId: request.body.bidId,
-      bidderId: request.body.bidderId,
+      bidderId: this.getAuthenticatedUserId(response),
       amount: request.body.amount,
       placedAt: now,
       rejectedBidAttemptId: request.body.rejectedBidAttemptId,

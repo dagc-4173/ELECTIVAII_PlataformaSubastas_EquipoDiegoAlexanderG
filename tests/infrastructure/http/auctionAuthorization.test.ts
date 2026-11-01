@@ -27,6 +27,8 @@ import { JwtTokenService } from "../../../src/infrastructure/security/JwtTokenSe
 async function createFixture() {
   const repository = new InMemoryAuctionRepository();
   const idGenerator = new RandomIdGenerator();
+  const publishedAt = new Date(Date.now() - 60_000);
+  const closesAt = new Date(publishedAt.getTime() + 24 * 60 * 60 * 1000,);
 
   await repository.save(
     Auction.publish(
@@ -37,8 +39,8 @@ async function createFixture() {
       AuctionPublicationData.create(
         Money.create(100000),
         Money.create(5000),
-        new Date("2026-11-02T18:00:00.000Z"),
-        new Date("2026-11-03T18:00:00.000Z"),
+        publishedAt,
+        closesAt,
       ),
     ),
   );
@@ -86,6 +88,69 @@ describe("RF-07 - HTTP auction cancellation authorization", () => {
 
     expect(response.status).toBe(401);
     expect(response.body.error.code).toBe("INVALID_TOKEN");
+  });
+
+
+  it("RF-04 should use the authenticated seller instead of the request body identity", async () => {
+    const { app, repository, tokenService } =
+      await createFixture();
+
+    const token = tokenService.generate("seller-002");
+
+    const publishedAt = new Date();
+    const closesAt = new Date(
+      publishedAt.getTime() + 24 * 60 * 60 * 1000,
+    );
+
+    const response = await request(app)
+      .post("/auctions")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        auctionId: "auction-002",
+        sellerId: "seller-001",
+        itemId: "item-002",
+        categoryId: "category-001",
+        basePrice: 100000,
+        minimumIncrement: 5000,
+        publishedAt: publishedAt.toISOString(),
+        closesAt: closesAt.toISOString(),
+      });
+
+    expect(response.status).toBe(201);
+
+    const auction = await repository.findById(
+      AuctionId.create("auction-002"),
+    );
+
+    expect(auction?.seller.value).toBe("seller-002");
+  });
+
+  it("RF-09 should use the authenticated bidder instead of the request body identity", async () => {
+    const { app, repository, tokenService } =
+      await createFixture();
+
+    const token = tokenService.generate("bidder-001");
+
+    const response = await request(app)
+      .post("/auctions/auction-001/bids")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        bidId: "bid-001",
+        bidderId: "seller-001",
+        amount: 100000,
+        rejectedBidAttemptId: "rejected-001",
+      });
+
+    expect(response.status).toBe(201);
+
+    const auction = await repository.findById(
+      AuctionId.create("auction-001"),
+    );
+
+    expect(auction?.bidHistory).toHaveLength(1);
+    expect(auction?.bidHistory[0]?.bidder.value).toBe(
+      "bidder-001",
+    );
   });
 
   it("should return 404 when the auction does not exist", async () => {
