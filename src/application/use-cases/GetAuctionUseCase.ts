@@ -1,3 +1,6 @@
+import { discardAuctionEvents } from "../ports/AuctionEventPublisher.js";
+import type { AuctionEventPublisher } from "../ports/AuctionEventPublisher.js";
+import { announceAuctionClosed } from "../events/announceAuctionEvent.js";
 import type { AuctionRepository } from "../../domain/ports/AuctionRepository.js";
 import { Auction } from "../../domain/entities/Auction.js";
 import { AuctionId } from "../../domain/value-objects/AuctionId.js";
@@ -14,6 +17,7 @@ export class GetAuctionUseCase {
   constructor(
     private readonly auctionRepository: AuctionRepository,
     private readonly idGenerator: IdGenerator,
+    private readonly events: AuctionEventPublisher = discardAuctionEvents,
   ) {}
 
   async execute(input: GetAuctionInput): Promise<Auction | null> {
@@ -40,6 +44,7 @@ export class GetAuctionUseCase {
       auction.close(input.currentDate, paymentOrderId);
 
       await this.auctionRepository.save(auction);
+      announceAuctionClosed(this.events, auction);
     }
 
     return auction;

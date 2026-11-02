@@ -9,7 +9,6 @@ import { AuctionResponseMapper } from "../mappers/AuctionResponseMapper.js";
 
 interface PublishAuctionBody {
   auctionId: string;
-  sellerId: string;
   itemId: string;
   categoryId: string;
   basePrice: number;
@@ -24,9 +23,7 @@ interface AuctionParams {
 
 interface PlaceBidBody {
   bidId: string;
-  bidderId: string;
   amount: number;
-  placedAt: string;
   rejectedBidAttemptId: string;
 }
 
@@ -52,7 +49,7 @@ export class AuctionController {
   ): Promise<void> => {
     const auction = await this.publishAuctionUseCase.execute({
       auctionId: request.body.auctionId,
-      sellerId: request.body.sellerId,
+      sellerId: this.getAuthenticatedUserId(response),
       itemId: request.body.itemId,
       categoryId: request.body.categoryId,
       basePrice: request.body.basePrice,
@@ -72,6 +69,7 @@ export class AuctionController {
   ): Promise<void> => {
     const auction = await this.cancelAuctionUseCase.execute(
       request.params.auctionId,
+      this.getAuthenticatedUserId(response),
     );
 
     console.log(`Auction cancelled: ${auction.id.value}`);
@@ -83,14 +81,16 @@ export class AuctionController {
     request: Request<AuctionParams, object, PlaceBidBody>,
     response: Response,
   ): Promise<void> => {
+    const now = new Date();
+
     const input = {
       auctionId: request.params.auctionId,
       bidId: request.body.bidId,
-      bidderId: request.body.bidderId,
+      bidderId: this.getAuthenticatedUserId(response),
       amount: request.body.amount,
-      placedAt: new Date(request.body.placedAt),
+      placedAt: now,
       rejectedBidAttemptId: request.body.rejectedBidAttemptId,
-      currentDate: new Date(),
+      currentDate: now,
     };
 
     const auction = await this.placeBidUseCase.execute(input);
@@ -153,4 +153,15 @@ export class AuctionController {
       },
     });
   };
+
+  private getAuthenticatedUserId(response: Response): string {
+    const userId: unknown =
+      response.locals.authenticatedUserId;
+
+    if (typeof userId !== "string" || userId.length === 0) {
+      throw new Error("Authenticated user ID is missing");
+    }
+
+    return userId;
+  }
 }

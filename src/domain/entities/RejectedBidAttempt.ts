@@ -1,6 +1,7 @@
 import { Money } from "../value-objects/Money.js";
 import { RejectedBidAttemptId } from "../value-objects/RejectedBidAttemptId.js";
 import { UserId } from "../value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class RejectedBidAttempt {
   private constructor(
@@ -21,11 +22,11 @@ export class RejectedBidAttempt {
     const normalizedReason = reason.trim();
 
     if (normalizedReason.length === 0) {
-      throw new Error("Rejected bid attempt reason cannot be empty");
+      throw new BusinessRuleViolationError("Rejected bid attempt reason cannot be empty",);
     }
 
     if (Number.isNaN(attemptedAt.getTime())) {
-      throw new Error("Rejected bid attempt date is invalid");
+      throw new BusinessRuleViolationError("Rejected bid attempt date is invalid");
     }
 
     return new RejectedBidAttempt(

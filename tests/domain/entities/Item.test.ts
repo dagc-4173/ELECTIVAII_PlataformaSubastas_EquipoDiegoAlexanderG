@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { Item } from "../../../src/domain/entities/Item.js";
 import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 describe("Item", () => {
   it("should create an item with valid data", () => {
@@ -39,7 +40,7 @@ describe("Item", () => {
         "Description",
         "Used",
       ),
-    ).toThrow("Item name cannot be empty");
+    ).toThrow(BusinessRuleViolationError);
   });
 
   it("should reject an empty item description", () => {

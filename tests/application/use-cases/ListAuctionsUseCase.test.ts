@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 
 import { ListAuctionsUseCase } from "../../../src/application/use-cases/ListAuctionsUseCase.js";
 import { InMemoryAuctionRepository } from "../../../src/infrastructure/persistence/memory/InMemoryAuctionRepository.js";
@@ -9,6 +9,7 @@ import { CategoryId } from "../../../src/domain/value-objects/CategoryId.js";
 import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
 import { Money } from "../../../src/domain/value-objects/Money.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 function createAuction(
   id: string,
@@ -109,7 +110,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
       "category-001",
     );
 
-    cancelledAuction.cancel();
+    cancelledAuction.cancel(UserId.create("seller-001"));
 
     await repository.save(openAuction);
     await repository.save(cancelledAuction);
@@ -145,7 +146,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
       "category-002",
     );
 
-    auction3.cancel();
+    auction3.cancel(UserId.create("seller-001"));
 
     await repository.save(auction1);
     await repository.save(auction2);
@@ -182,6 +183,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
     expect(result.totalPages).toBe(0);
   });
 
+
   it("should reject an invalid page number", async () => {
     const repository = new InMemoryAuctionRepository();
     const useCase = new ListAuctionsUseCase(repository);
@@ -191,7 +193,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
         page: 0,
         pageSize: 10,
       }),
-    ).rejects.toThrow("Page must be a positive integer");
+    ).rejects.toThrow(BusinessRuleViolationError);
   });
 
   it("should reject an invalid page size", async () => {
@@ -203,6 +205,6 @@ describe("ListAuctionsUseCase - RF-05", () => {
         page: 1,
         pageSize: 0,
       }),
-    ).rejects.toThrow("Page size must be a positive integer");
+    ).rejects.toThrow(BusinessRuleViolationError);
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { Category } from "../../../src/domain/entities/Category.js";
 import { CategoryId } from "../../../src/domain/value-objects/CategoryId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 describe("Category", () => {
   it("should create a category with a valid id and name", () => {
@@ -25,6 +26,6 @@ describe("Category", () => {
   it("should reject an empty category name", () => {
     expect(() =>
       Category.create(CategoryId.create("category-001"), "   "),
-    ).toThrow("Category name cannot be empty");
+    ).toThrow(BusinessRuleViolationError);
   });
 });

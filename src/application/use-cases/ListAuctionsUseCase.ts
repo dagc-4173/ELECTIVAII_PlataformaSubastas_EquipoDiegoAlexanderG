@@ -1,5 +1,6 @@
 import type { AuctionRepository } from "../../domain/ports/AuctionRepository.js";
 import { Auction } from "../../domain/entities/Auction.js";
+import { BusinessRuleViolationError } from "../../domain/errors/BusinessRuleViolationError.js";
 
 export interface ListAuctionsInput {
   categoryId?: string;
@@ -25,11 +26,11 @@ export class ListAuctionsUseCase {
     input: ListAuctionsInput,
   ): Promise<ListAuctionsResult> {
     if (!Number.isInteger(input.page) || input.page < 1) {
-      throw new Error("Page must be a positive integer");
+      throw new BusinessRuleViolationError("Page must be a positive integer");
     }
 
     if (!Number.isInteger(input.pageSize) || input.pageSize < 1) {
-      throw new Error("Page size must be a positive integer");
+      throw new BusinessRuleViolationError("Page size must be a positive integer");
     }
 
     const auctions = await this.auctionRepository.findAll();

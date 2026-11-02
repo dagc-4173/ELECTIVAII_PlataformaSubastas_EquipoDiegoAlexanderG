@@ -4,6 +4,7 @@ import { RejectedBidAttempt } from "../../../src/domain/entities/RejectedBidAtte
 import { Money } from "../../../src/domain/value-objects/Money.js";
 import { RejectedBidAttemptId } from "../../../src/domain/value-objects/RejectedBidAttemptId.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 describe("RejectedBidAttempt - RN-12", () => {
   it("should create a rejected bid attempt with valid data", () => {
@@ -45,7 +46,7 @@ describe("RejectedBidAttempt - RN-12", () => {
         "   ",
         new Date("2026-09-01T12:00:00.000Z"),
       ),
-    ).toThrow("Rejected bid attempt reason cannot be empty");
+    ).toThrow(BusinessRuleViolationError);
   });
 
   it("should reject an invalid attempt date", () => {
@@ -57,7 +58,7 @@ describe("RejectedBidAttempt - RN-12", () => {
         "Bid amount is too low",
         new Date("invalid-date"),
       ),
-    ).toThrow("Rejected bid attempt date is invalid");
+    ).toThrow(BusinessRuleViolationError);
   });
 
   it("should protect the internal attempt date from external mutation", () => {

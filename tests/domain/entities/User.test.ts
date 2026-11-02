@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { User } from "../../../src/domain/entities/User.js";
 import { Email } from "../../../src/domain/value-objects/Email.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 describe("User", () => {
   it("should create a user with valid data", () => {
@@ -38,7 +39,7 @@ describe("User", () => {
         Email.create("alexander@example.com"),
         "hashed-password",
       ),
-    ).toThrow("User name cannot be empty");
+    ).toThrow(BusinessRuleViolationError);
   });
 
   it("should reject an empty password hash", () => {
@@ -49,6 +50,6 @@ describe("User", () => {
         Email.create("alexander@example.com"),
         "   ",
       ),
-    ).toThrow("Password hash cannot be empty");
+    ).toThrow(BusinessRuleViolationError);
   });
 });

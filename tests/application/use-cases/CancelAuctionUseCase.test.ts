@@ -37,7 +37,7 @@ describe("CancelAuctionUseCase", () => {
 
     const useCase = new CancelAuctionUseCase(repository);
 
-    const result = await useCase.execute("auction-001");
+    const result = await useCase.execute("auction-001", "seller-001");
 
     expect(result.status.value).toBe("CANCELLED");
   });
@@ -61,7 +61,7 @@ describe("CancelAuctionUseCase", () => {
     const useCase = new CancelAuctionUseCase(repository);
 
     await expect(
-      useCase.execute("auction-001"),
+      useCase.execute("auction-001", "seller-001"),
     ).rejects.toThrow("Auction with bids cannot be cancelled");
   });
 
@@ -70,7 +70,28 @@ describe("CancelAuctionUseCase", () => {
     const useCase = new CancelAuctionUseCase(repository);
 
     await expect(
-      useCase.execute("auction-404"),
+      useCase.execute("auction-404", "seller-001"),
     ).rejects.toThrow("Auction not found");
+  });
+
+  it("RF-07 should reject cancellation by a non-owner", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const auction = createAuction();
+
+    await repository.save(auction);
+
+    const useCase = new CancelAuctionUseCase(repository);
+
+    await expect(
+      useCase.execute("auction-001", "user-002"),
+    ).rejects.toThrow(
+      "Only the auction seller can cancel the auction",
+    );
+
+    const storedAuction = await repository.findById(
+      AuctionId.create("auction-001"),
+    );
+
+    expect(storedAuction?.status.value).toBe("OPEN");
   });
 });

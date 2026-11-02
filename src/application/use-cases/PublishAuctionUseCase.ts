@@ -6,6 +6,7 @@ import { CategoryId } from "../../domain/value-objects/CategoryId.js";
 import { ItemId } from "../../domain/value-objects/ItemId.js";
 import { Money } from "../../domain/value-objects/Money.js";
 import { UserId } from "../../domain/value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../../domain/errors/BusinessRuleViolationError.js";
 
 export interface PublishAuctionInput {
   auctionId: string;
@@ -19,7 +20,10 @@ export interface PublishAuctionInput {
 }
 
 export class PublishAuctionUseCase {
-  constructor(private readonly auctionRepository: AuctionRepository) {}
+  constructor(
+    private readonly auctionRepository: AuctionRepository,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
 
   async execute(input: PublishAuctionInput): Promise<Auction> {
     const auctionId = AuctionId.create(input.auctionId);
@@ -27,7 +31,7 @@ export class PublishAuctionUseCase {
     const existingAuction = await this.auctionRepository.findById(auctionId);
 
     if (existingAuction !== null) {
-      throw new Error("Auction ID is already registered");
+      throw new BusinessRuleViolationError("Auction ID is already registered");
     }
 
     const publicationData = AuctionPublicationData.create(
@@ -36,6 +40,8 @@ export class PublishAuctionUseCase {
       input.publishedAt,
       input.closesAt,
     );
+
+    publicationData.assertCanBePublishedAt(this.now());
 
     const auction = Auction.publish(
       auctionId,

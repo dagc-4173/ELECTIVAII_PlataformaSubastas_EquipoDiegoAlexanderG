@@ -1,3 +1,5 @@
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
+
 export class RejectedBidAttemptId {
   private constructor(private readonly id: string) {}
 
@@ -5,7 +7,7 @@ export class RejectedBidAttemptId {
     const value = id.trim();
 
     if (value.length === 0) {
-      throw new Error("Rejected bid attempt id cannot be empty");
+      throw new BusinessRuleViolationError("Rejected bid attempt id cannot be empty");
     }
 
     return new RejectedBidAttemptId(value);

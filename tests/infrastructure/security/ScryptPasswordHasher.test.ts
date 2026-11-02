@@ -30,4 +30,30 @@ describe("ScryptPasswordHasher - RNF-16", () => {
       passwordHasher.hash("   "),
     ).rejects.toThrow("Password cannot be empty");
   });
+
+  it("RF-02 should verify a correct password", async () => {
+    const hasher = new ScryptPasswordHasher();
+    const hash = await hasher.hash("secret123");
+
+    await expect(
+      hasher.verify("secret123", hash),
+    ).resolves.toBe(true);
+  });
+
+  it("RF-02 should reject an incorrect password", async () => {
+    const hasher = new ScryptPasswordHasher();
+    const hash = await hasher.hash("secret123");
+
+    await expect(
+      hasher.verify("wrongPassword", hash),
+    ).resolves.toBe(false);
+  });
+
+  it("RF-02 should reject a malformed password hash", async () => {
+    const hasher = new ScryptPasswordHasher();
+
+    await expect(
+      hasher.verify("secret123", "invalid-hash"),
+    ).resolves.toBe(false);
+  });
 });

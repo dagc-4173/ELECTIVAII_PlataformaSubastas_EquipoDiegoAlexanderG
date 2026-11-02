@@ -5,10 +5,18 @@ import { InMemoryUserRepository } from "../../../src/infrastructure/persistence/
 import { Email } from "../../../src/domain/value-objects/Email.js";
 import type { PasswordHasher } from "../../../src/application/ports/PasswordHasher.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 class FakePasswordHasher implements PasswordHasher {
   async hash(password: string): Promise<string> {
     return `hashed:${password}`;
+  }
+
+  async verify(
+    password: string,
+    passwordHash: string,
+  ): Promise<boolean> {
+    return passwordHash === `hashed:${password}`;
   }
 }
 
@@ -55,7 +63,7 @@ describe("RegisterUserUseCase - RN-22", () => {
         email: "diego@example.com",
         password: "secret123",
       }),
-    ).rejects.toThrow("Email is already registered");
+    ).rejects.toThrow(BusinessRuleViolationError);
   });
 
   it("RN-22 should preserve the original user when a duplicate email is rejected", async () => {

@@ -15,7 +15,7 @@ La finalidad de esta matriz es facilitar la revisión técnica y la sustentació
 | Regla | Descripción | Estado | Archivo principal | Clase / método responsable | Prueba que demuestra la regla |
 |---|---|---|---|---|---|
 | RN-01 | El precio base y el incremento mínimo deben ser mayores que cero y debe existir fecha/hora de cierre. | Implementada | `src/domain/value-objects/AuctionPublicationData.ts` | `AuctionPublicationData.create()` | `RN-01 should reject a base price equal to zero`; `RN-01 should reject a minimum increment equal to zero` |
-| RN-02 | La fecha de cierre debe ser posterior a la fecha de publicación. | Implementada | `src/domain/value-objects/AuctionPublicationData.ts` | `AuctionPublicationData.create()` | `RN-02 should reject a closing date equal to the publication date`; `RN-02 should reject a closing date before the publication date` |
+| RN-02 | La fecha de cierre debe ser posterior a la fecha de publicación. | Implementada | `src/domain/value-objects/AuctionPublicationData.ts` | `AuctionPublicationData.create()`, `assertCanBePublishedAt()`, invocado por `PublishAuctionUseCase.execute()` | `RN-02 should reject a closing date equal to the publication date`; `RN-02 should reject a closing date before the publication date`; `RN-02 rejects a new auction whose closing date is already past despite historical publication dates`; pruebas de frontera en `PublishAuctionUseCase.test.ts` |
 | RN-03 | La duración de una subasta debe estar entre 1 hora y 30 días calendario. | Implementada | `src/domain/value-objects/AuctionPublicationData.ts` | `AuctionPublicationData.create()` | `RN-03 should reject a duration shorter than one hour`; `RN-03 should allow a duration of exactly one hour`; `RN-03 should allow a duration of exactly thirty days`; `RN-03 should reject a duration longer than thirty days` |
 | RN-04 | Una subasta solo puede cancelarse si no tiene pujas. | Implementada | `src/domain/entities/Auction.ts` | `Auction.cancel()` | `RN-04 should cancel an auction when it has no bids`; `RN-04 should reject cancellation when the auction already has bids`; `RN-04 should reject cancellation when the auction is no longer open` |
 | RN-05 | Los datos de publicación de una subasta no pueden modificarse después de publicarse. | Implementada por diseño inmutable | `src/domain/entities/Auction.ts`, `src/domain/value-objects/AuctionPublicationData.ts` | Campos `readonly`, getters defensivos y ausencia de métodos de modificación | `should preserve publication data`; `should protect publication dates from external mutation` |
@@ -35,13 +35,27 @@ La finalidad de esta matriz es facilitar la revisión técnica y la sustentació
 | RN-19 | El procesamiento de eventos de pago debe ser idempotente. | Pendiente | — | Requiere caso de uso de procesamiento de `PaymentEvent` | — |
 | RN-20 | Una orden de pago vencida y no confirmada debe quedar expirada y la subasta debe pasar a incumplida. | Implementada en dominio | `src/domain/entities/PaymentOrder.ts`, `src/domain/entities/Auction.ts` | `PaymentOrder.expire()`, `Auction.expirePayment()` | `RN-20 should expire a pending payment order at its due date`; `RN-20 should reject expiration before the payment deadline`; `RN-20 should reject expiration of a confirmed payment order`; `RN-20 should expire the payment order and mark the auction as defaulted` |
 | RN-21 | Los valores monetarios se manejan como enteros, sin decimales y sin valores negativos. | Implementada | `src/domain/value-objects/Money.ts` | `Money.create()` | `should create money with a non-negative integer amount`; `should reject negative amounts`; `should reject decimal amounts` |
-| RN-22 | El correo electrónico de un usuario debe ser único dentro de la plataforma. | Pendiente | — | Requiere `UserRepository.findByEmail()` y caso de uso de registro | — |
-| RN-23 | El historial de pujas de una subasta es información pública para cualquier usuario registrado. Los datos de contacto de los postores no lo son. | Parcial | `src/domain/entities/Auction.ts`, `src/infrastructure/http/mappers/AuctionResponseMapper.ts` | `Auction.bidHistory`, `AuctionResponseMapper.toResponse()` | El historial se expone sin datos de contacto; queda pendiente restringir el acceso a usuarios autenticados/registrados |
+| RN-22 | El correo electrónico de un usuario debe ser único dentro de la plataforma. | Implementada | `src/application/use-cases/RegisterUserUseCase.ts`, `src/infrastructure/persistence/memory/InMemoryUserRepository.ts`, `src/infrastructure/persistence/sqlite/SqliteUserRepository.ts` | `RegisterUserUseCase.execute()`, `UserRepository.findByEmail()` | `RN-22 should reject registering a second user with the same email`; `RN-22 should preserve the original user when a duplicate email is rejected` |
+| RN-23 | El historial de pujas es accesible para usuarios registrados sin revelar datos de contacto de los postores. | Implementada y verificada en detalle HTTP | `src/infrastructure/http/routes/auctionRoutes.ts`, `src/infrastructure/http/middlewares/authenticate.ts`, `src/infrastructure/http/mappers/AuctionResponseMapper.ts` | `createAuctionRouter()`, `createAuthenticate()`, `AuctionResponseMapper.toResponse()` | `auctionAuthorization.test.ts`: `RN-23 should allow a registered observer to read bid history without contact or password data`; `RN-23 should reject unauthenticated access to auction detail` |
 
-## Reglas parcialmente implementadas
+## Reglas pendientes y verificaciones adicionales
+
+### RN-17, RN-18 y RN-19
+
+Estas reglas corresponden a la confirmación de pagos, la verificación de notificaciones externas y el procesamiento idempotente de eventos de pago.
+
+RN-17 dispone de comportamiento de confirmación modelado en el dominio, pero aún requiere la integración con el procesamiento externo de pagos.
+
+RN-18 y RN-19 permanecen pendientes de implementación.
 
 ### RN-23
 
-La representación HTTP del historial de pujas no expone información de contacto de los postores. Actualmente se identifica al pujador únicamente mediante `bidderId`.
+La consulta de una subasta por identificador requiere autenticación JWT.
 
-La restricción de acceso exclusiva para usuarios registrados queda pendiente del mecanismo de autenticación de la API. No se implementa todavía para evitar adelantar innecesariamente RF-02 antes de cerrar el alcance principal de la Entrega 1.
+El middleware de autenticación verifica que el token sea válido y que el usuario exista en el repositorio.
+
+La respuesta HTTP incluye el historial de pujas, identificando a los postores mediante `bidderId`, sin exponer sus datos de contacto.
+
+Las pruebas HTTP de `auctionAuthorization.test.ts` comprueban que un observador registrado consulta una puja creada por HTTP sin recibir datos de contacto ni contraseñas, y que el detalle rechaza acceso sin JWT.
+
+El listado público `GET /auctions` también utiliza `AuctionResponseMapper` e incluye los historiales sin datos de contacto. No se afirma exclusividad de acceso al historial para usuarios autenticados; RN-23 exige disponibilidad para usuarios registrados y privacidad de contacto, sin declarar expresamente exclusividad del acceso. La política pública del listado se conserva y se señala para revisión; las pruebas añadidas verifican el detalle autenticado.

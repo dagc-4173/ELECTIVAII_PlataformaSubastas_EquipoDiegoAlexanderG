@@ -1,27 +1,119 @@
 openapi: 3.0.3
-
 info:
   title: Plataforma de Subastas API
   version: 1.0.0
-  description: >
-    API REST correspondiente a la Entrega 1 del proyecto
-    Plataforma de Subastas en Línea de Electiva II - Desarrollo.
-
+  description: API REST de la Plataforma de Subastas en Línea de Electiva II - Desarrollo. Documenta las operaciones REST implementadas, autenticación JWT y respuestas HTTP. Las rutas desconocidas responden 404 ROUTE_NOT_FOUND. Las fechas de entrada requieren fecha/hora ISO con segundos y zona horaria. El cuerpo JSON tiene un límite de 100 KiB; los campos adicionales no consumidos se ignoran.
 servers:
-  - url: http://localhost:3000
-    description: Servidor local
-
+- url: http://localhost:3000
+  description: Servidor local
 tags:
-  - name: Auctions
-    description: Operaciones relacionadas con subastas
-  - name: Users
-    description: Operaciones relacionadas con usuarios
-
+- name: Auth
+  description: Autenticación de usuarios mediante JWT
+- name: Auctions
+  description: Operaciones relacionadas con subastas
+- name: Users
+  description: Operaciones relacionadas con usuarios
 paths:
+  /auth/login:
+    post:
+      tags:
+      - Auth
+      summary: Autenticar un usuario
+      description: Valida las credenciales y devuelve un token JWT.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/InvalidCredentials'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /auctions/{auctionId}/payment-order:
+    get:
+      tags:
+      - Auctions
+      summary: Consultar la orden de pago como ganador
+      description: Solo el ganador autenticado puede consultar una orden existente. Esta consulta no cierra subastas, confirma pagos ni expira órdenes; el cierre perezoso ocurre al consultar el detalle o intentar pujar.
+      operationId: getPaymentOrder
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: auctionId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Orden de pago del ganador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          description: El usuario autenticado no es el ganador (FORBIDDEN_OPERATION)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Subasta u orden inexistente (RESOURCE_NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /users/me:
+    get:
+      tags:
+      - Users
+      summary: Consultar el perfil y la actividad del usuario autenticado
+      description: La identidad se obtiene del JWT. Incluye subastas publicadas y subastas con al menos una puja aceptada, una vez por subasta. No pagina ni ejecuta cierre perezoso. No devuelve contraseñas ni hashes.
+      operationId: getUserProfile
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Perfil del usuario autenticado y actividad actual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          description: El usuario dejó de existir después de la autenticación (RESOURCE_NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /users:
     post:
       tags:
-        - Users
+      - Users
       summary: Registrar un nuevo usuario
       operationId: registerUser
       requestBody:
@@ -29,502 +121,663 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RegisterUserRequest"
+              $ref: '#/components/schemas/RegisterUserRequest'
       responses:
-        "201":
+        '201':
           description: Usuario registrado correctamente
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
-        "400":
-          $ref: "#/components/responses/BusinessRuleViolation"
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /auctions:
     post:
       tags:
-        - Auctions
+      - Auctions
       summary: Publicar una nueva subasta
       operationId: publishAuction
+      security:
+      - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PublishAuctionRequest"
+              $ref: '#/components/schemas/PublishAuctionRequest'
       responses:
-        "201":
+        '201':
           description: Subasta publicada correctamente
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuctionResponse"
-        "400":
-          $ref: "#/components/responses/BusinessRuleViolation"
-
+                $ref: '#/components/schemas/AuctionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      description: El vendedor se identifica mediante el JWT; sellerId no forma parte del cuerpo de la solicitud.
     get:
       tags:
-        - Auctions
+      - Auctions
       summary: Listar subastas
       operationId: listAuctions
       parameters:
-        - name: categoryId
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filtra por identificador de categoría
-
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum:
-              - OPEN
-              - CANCELLED
-              - CLOSED
-              - DESERTED
-              - DEFAULTED
-          description: Filtra por estado de la subasta
-
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Número de página
-
-        - name: pageSize
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            default: 10
-          description: Cantidad de elementos por página
-
+      - name: categoryId
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filtra por identificador de categoría
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - OPEN
+          - CANCELLED
+          - CLOSED
+          - DESERTED
+          - DEFAULTED
+        description: Filtra por estado de la subasta
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: Número de página
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 10
+        description: Cantidad de elementos por página
       responses:
-        "200":
+        '200':
           description: Listado paginado de subastas
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuctionListResponse"
-        "400":
-          $ref: "#/components/responses/BusinessRuleViolation"
-
+                $ref: '#/components/schemas/AuctionListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /auctions/{auctionId}:
     parameters:
-      - name: auctionId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Identificador de la subasta
-
+    - name: auctionId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Identificador de la subasta
     get:
       tags:
-        - Auctions
+      - Auctions
       summary: Consultar una subasta por identificador
       operationId: getAuctionById
+      security:
+      - BearerAuth: []
       responses:
-        "200":
+        '200':
           description: Detalle de la subasta
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuctionResponse"
-        "404":
-          $ref: "#/components/responses/ResourceNotFound"
-        "400":
-          $ref: "#/components/responses/BusinessRuleViolation"
-
+                $ref: '#/components/schemas/AuctionResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '409':
+          $ref: '#/components/responses/ConcurrentModification'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     delete:
       tags:
-        - Auctions
+      - Auctions
       summary: Cancelar una subasta
-      description: >
-        Cancela una subasta siempre que las reglas de negocio lo permitan.
-        Una subasta con pujas no puede ser cancelada.
+      description: 'Cancela una subasta siempre que las reglas de negocio lo permitan. Una subasta con pujas no puede ser cancelada.
+
+        '
       operationId: cancelAuction
+      security:
+      - BearerAuth: []
       responses:
-        "200":
+        '200':
           description: Subasta cancelada correctamente
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuctionResponse"
-        "404":
-          $ref: "#/components/responses/ResourceNotFound"
-        "400":
-          $ref: "#/components/responses/BusinessRuleViolation"
-
+                $ref: '#/components/schemas/AuctionResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          $ref: '#/components/responses/ForbiddenOperation'
+        '409':
+          $ref: '#/components/responses/ConcurrentModification'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /auctions/{auctionId}/bids:
     parameters:
-      - name: auctionId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Identificador de la subasta
-
+    - name: auctionId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Identificador de la subasta
     post:
       tags:
-        - Auctions
+      - Auctions
       summary: Registrar una puja
       operationId: placeBid
+      security:
+      - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PlaceBidRequest"
+              $ref: '#/components/schemas/PlaceBidRequest'
       responses:
-        "201":
+        '201':
           description: Puja aceptada correctamente
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuctionResponse"
-        "404":
-          $ref: "#/components/responses/ResourceNotFound"
-        "400":
-          $ref: "#/components/responses/BusinessRuleViolation"
-
+                $ref: '#/components/schemas/AuctionResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '409':
+          $ref: '#/components/responses/ConcurrentModification'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      description: El postor se obtiene del JWT y la fecha de la puja se genera en el servidor.
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     UserResponse:
       type: object
       required:
-        - id
-        - name
-        - email
+      - id
+      - name
+      - email
       properties:
         id:
           type: string
           example: user-001
-
         name:
           type: string
           example: Diego
-
         email:
           type: string
           format: email
           example: diego@example.com
-
     RegisterUserRequest:
       type: object
       required:
-        - userId
-        - name
-        - email
-        - password
+      - userId
+      - name
+      - email
+      - password
       properties:
         userId:
           type: string
           example: user-001
-
         name:
           type: string
           example: Diego
-
         email:
           type: string
           format: email
           example: diego@example.com
-
         password:
           type: string
           format: password
-          example: "securePassword123"
-
-    PublishAuctionRequest:
+          example: securePassword123
+    LoginRequest:
       type: object
       required:
-        - auctionId
-        - sellerId
-        - itemId
-        - categoryId
-        - basePrice
-        - minimumIncrement
-        - publishedAt
-        - closesAt
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: usuario@example.com
+        password:
+          type: string
+          format: password
+          example: securePassword123
+    LoginResponse:
+      type: object
+      required:
+      - accessToken
+      - tokenType
+      - expiresIn
+      properties:
+        accessToken:
+          type: string
+          description: Token JWT para acceder a rutas protegidas
+        tokenType:
+          type: string
+          enum:
+          - Bearer
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Duración del token en segundos
+          example: 3600
+    PublishAuctionRequest:
+      type: object
+      description: 'Datos necesarios para publicar una subasta. El vendedor se identifica mediante el token JWT. El cierre debe ser posterior a la hora real del servidor, además de cumplir la duración y el orden de fechas del dominio.
+
+        '
+      required:
+      - auctionId
+      - itemId
+      - categoryId
+      - basePrice
+      - minimumIncrement
+      - publishedAt
+      - closesAt
       properties:
         auctionId:
           type: string
           example: auction-001
-
-        sellerId:
-          type: string
-          example: seller-001
-
         itemId:
           type: string
           example: item-001
-
         categoryId:
           type: string
           example: category-001
-
         basePrice:
           type: integer
           minimum: 1
           example: 100000
-
         minimumIncrement:
           type: integer
           minimum: 1
           example: 5000
-
         publishedAt:
           type: string
           format: date-time
-          example: "2026-09-05T12:00:00.000Z"
-
+          example: '2026-11-05T12:00:00.000Z'
         closesAt:
           type: string
           format: date-time
-          example: "2026-09-06T12:00:00.000Z"
-
+          example: '2026-11-06T12:00:00.000Z'
     PlaceBidRequest:
       type: object
+      description: 'Datos necesarios para registrar una puja. El postor se obtiene del JWT y la fecha de la puja se genera en el servidor.
+
+        '
       required:
-        - bidId
-        - bidderId
-        - amount
-        - placedAt
-        - rejectedBidAttemptId
+      - bidId
+      - amount
+      - rejectedBidAttemptId
       properties:
         bidId:
           type: string
           example: bid-001
-
-        bidderId:
-          type: string
-          example: bidder-001
-
         amount:
           type: integer
           minimum: 0
-          example: 100000
-
-        placedAt:
-          type: string
-          format: date-time
-          example: "2026-09-05T13:00:00.000Z"
-
+          example: 105000
         rejectedBidAttemptId:
           type: string
-          description: >
-            Identificador utilizado para conservar el intento cuando
-            la puja es rechazada.
-          example: rejected-attempt-001
+          description: 'Identificador utilizado para conservar el intento cuando la puja es rechazada.
 
+            '
+          example: rejected-attempt-001
     AuctionResponse:
       type: object
-            required:
-        - id
-        - sellerId
-        - itemId
-        - categoryId
-        - basePrice
-        - minimumIncrement
-        - publishedAt
-        - closesAt
-        - status
-        - currentBidAmount
-        - bids
-        - rejectedBidAttempts
+      required:
+      - id
+      - sellerId
+      - itemId
+      - categoryId
+      - basePrice
+      - minimumIncrement
+      - publishedAt
+      - closesAt
+      - status
+      - currentBidAmount
+      - bids
+      - rejectedBidAttempts
       properties:
         id:
           type: string
           example: auction-001
-
         sellerId:
           type: string
           example: seller-001
-
         itemId:
           type: string
           example: item-001
-
         categoryId:
           type: string
           example: category-001
-
         basePrice:
           type: integer
           example: 100000
-
         minimumIncrement:
           type: integer
           example: 5000
-
         publishedAt:
           type: string
           format: date-time
-
         closesAt:
           type: string
           format: date-time
-
         status:
           type: string
           enum:
-            - OPEN
-            - CANCELLED
-            - CLOSED
-            - DESERTED
-            - DEFAULTED
-        
+          - OPEN
+          - CANCELLED
+          - CLOSED
+          - DESERTED
+          - DEFAULTED
         currentBidAmount:
           type: integer
           nullable: true
           example: 105000
           description: Monto de la puja vigente. Es null cuando aún no existen pujas aceptadas.
-
         bids:
           type: array
           items:
-            $ref: "#/components/schemas/BidResponse"
-
+            $ref: '#/components/schemas/BidResponse'
         rejectedBidAttempts:
           type: array
           items:
-            $ref: "#/components/schemas/RejectedBidAttemptResponse"
-
+            $ref: '#/components/schemas/RejectedBidAttemptResponse'
     BidResponse:
       type: object
       required:
-        - id
-        - bidderId
-        - amount
-        - placedAt
+      - id
+      - bidderId
+      - amount
+      - placedAt
       properties:
         id:
           type: string
           example: bid-001
-
         bidderId:
           type: string
           example: bidder-001
-
         amount:
           type: integer
           example: 100000
-
         placedAt:
           type: string
           format: date-time
-
     RejectedBidAttemptResponse:
       type: object
       required:
-        - id
-        - bidderId
-        - amount
-        - reason
-        - attemptedAt
+      - id
+      - bidderId
+      - amount
+      - reason
+      - attemptedAt
       properties:
         id:
           type: string
           example: rejected-attempt-001
-
         bidderId:
           type: string
           example: bidder-001
-
         amount:
           type: integer
           example: 99000
-
         reason:
           type: string
           example: First bid must be greater than or equal to base price
-
         attemptedAt:
           type: string
           format: date-time
-
     AuctionListResponse:
       type: object
       required:
-        - items
-        - pagination
+      - items
+      - pagination
       properties:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/AuctionResponse"
-
+            $ref: '#/components/schemas/AuctionResponse'
         pagination:
-          $ref: "#/components/schemas/Pagination"
-
+          $ref: '#/components/schemas/Pagination'
     Pagination:
       type: object
       required:
-        - page
-        - pageSize
-        - totalItems
-        - totalPages
+      - page
+      - pageSize
+      - totalItems
+      - totalPages
       properties:
         page:
           type: integer
           example: 1
-
         pageSize:
           type: integer
           example: 10
-
         totalItems:
           type: integer
           example: 25
-
         totalPages:
           type: integer
           example: 3
-
+    PaymentOrderResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - auctionId
+      - winnerId
+      - amount
+      - status
+      - createdAt
+      - dueAt
+      properties:
+        id:
+          type: string
+        auctionId:
+          type: string
+        winnerId:
+          type: string
+        amount:
+          type: integer
+          minimum: 0
+          description: Monto ganador en pesos colombianos, sin decimales
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, EXPIRED]
+        createdAt:
+          type: string
+          format: date-time
+        dueAt:
+          type: string
+          format: date-time
+    UserProfileResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - email
+      - publishedAuctions
+      - participatedAuctions
+      properties:
+        id:
+          type: string
+          example: seller-001
+        name:
+          type: string
+          example: Diego
+        email:
+          type: string
+          format: email
+          example: diego@example.com
+        publishedAuctions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionResponse'
+        participatedAuctions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionResponse'
     ErrorResponse:
       type: object
       required:
-        - error
+      - error
       properties:
         error:
           type: object
           required:
-            - code
-            - message
+          - code
+          - message
           properties:
             code:
               type: string
               example: BUSINESS_RULE_VIOLATION
-
             message:
               type: string
               example: Auction with bids cannot be cancelled
-
   responses:
+    BadRequest:
+      description: Formato inválido (INVALID_REQUEST), JSON malformado o valor primitivo no admitido (INVALID_JSON), o regla del dominio incumplida (BUSINESS_RULE_VIOLATION). Los mensajes no incluyen valores privados de la solicitud.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_REQUEST
+              message: 'Invalid or missing field: amount'
+    PayloadTooLarge:
+      description: El cuerpo JSON supera 100 KiB (PAYLOAD_TOO_LARGE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnsupportedMediaType:
+      description: Content-Type distinto de application/json, charset o codificación no admitidos (UNSUPPORTED_MEDIA_TYPE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     BusinessRuleViolation:
       description: La solicitud viola una regla o validación de la aplicación
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
           example:
             error:
               code: BUSINESS_RULE_VIOLATION
               message: Email is already registered
-
     ResourceNotFound:
       description: El recurso solicitado no existe
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
           example:
             error:
               code: RESOURCE_NOT_FOUND
               message: Auction not found
+    AuthenticationRequired:
+      description: Se requiere autenticación o el token es inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: AUTHENTICATION_REQUIRED
+              message: Authentication token is required
+    ForbiddenOperation:
+      description: El usuario autenticado no tiene permiso para realizar la operación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FORBIDDEN_OPERATION
+              message: Only the seller can cancel the auction
+    ConcurrentModification:
+      description: La subasta cambió después de la lectura. Recargar y decidir si reintentar; la escritura obsoleta no fue aplicada.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: CONCURRENT_MODIFICATION
+              message: Auction changed; reload and retry the operation
+    InternalServerError:
+      description: Error inesperado del servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INTERNAL_SERVER_ERROR
+              message: Unexpected server error
+    InvalidRequest:
+      description: Solicitud con credenciales requeridas ausentes o inválidas
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_REQUEST
+              message: Email and password are required
+    InvalidCredentials:
+      description: Credenciales de inicio de sesión incorrectas
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_CREDENTIALS
+              message: Invalid email or password

@@ -1,3 +1,6 @@
+import { discardAuctionEvents } from "../ports/AuctionEventPublisher.js";
+import type { AuctionEventPublisher } from "../ports/AuctionEventPublisher.js";
+import { announceAuctionClosed } from "../events/announceAuctionEvent.js";
 import type { AuctionRepository } from "../../domain/ports/AuctionRepository.js";
 import { Auction } from "../../domain/entities/Auction.js";
 import { AuctionId } from "../../domain/value-objects/AuctionId.js";
@@ -11,7 +14,10 @@ export interface CloseAuctionInput {
 }
 
 export class CloseAuctionUseCase {
-  constructor(private readonly auctionRepository: AuctionRepository) {}
+  constructor(
+    private readonly auctionRepository: AuctionRepository,
+    private readonly events: AuctionEventPublisher = discardAuctionEvents,
+  ) {}
 
   async execute(input: CloseAuctionInput): Promise<Auction> {
     const auction = await this.auctionRepository.findById(
@@ -30,6 +36,7 @@ export class CloseAuctionUseCase {
     auction.close(input.closedAt, paymentOrderId);
 
     await this.auctionRepository.save(auction);
+    announceAuctionClosed(this.events, auction);
 
     return auction;
   }

@@ -1,3 +1,5 @@
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
+
 export class ItemId {
   private constructor(private readonly id: string) {}
 
@@ -5,7 +7,7 @@ export class ItemId {
     const value = id.trim();
 
     if (value.length === 0) {
-      throw new Error("Item id cannot be empty");
+      throw new BusinessRuleViolationError("Item id cannot be empty");
     }
 
     return new ItemId(value);

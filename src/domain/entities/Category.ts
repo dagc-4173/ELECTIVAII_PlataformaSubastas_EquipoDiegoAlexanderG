@@ -1,4 +1,5 @@
 import { CategoryId } from "../value-objects/CategoryId.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class Category {
   private constructor(
@@ -10,7 +11,7 @@ export class Category {
     const normalizedName = name.trim();
 
     if (normalizedName.length === 0) {
-      throw new Error("Category name cannot be empty");
+      throw new BusinessRuleViolationError("Category name cannot be empty");
     }
 
     return new Category(id, normalizedName);

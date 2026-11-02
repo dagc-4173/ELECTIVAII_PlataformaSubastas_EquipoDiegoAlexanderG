@@ -9,6 +9,8 @@ import { RejectedBidAttempt } from "./RejectedBidAttempt.js";
 import { RejectedBidAttemptId } from "../value-objects/RejectedBidAttemptId.js";
 import { PaymentOrder } from "./PaymentOrder.js";
 import { PaymentOrderId } from "../value-objects/PaymentOrderId.js";
+import { ForbiddenOperationError } from "../errors/ForbiddenOperationError.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class Auction {
   private constructor(
@@ -43,6 +45,47 @@ export class Auction {
     );
   }
 
+  static reconstitute(state: {
+    id: AuctionId;
+    sellerId: UserId;
+    itemId: ItemId;
+    categoryId: CategoryId;
+    publication: AuctionPublicationData;
+    status: AuctionStatus;
+    bids: readonly Bid[];
+    rejectedAttempts: readonly RejectedBidAttempt[];
+    paymentOrder: PaymentOrder | undefined;
+  }): Auction {
+    const auction = Auction.publish(state.id, state.sellerId, state.itemId, state.categoryId, state.publication);
+    for (const bid of state.bids) {
+      auction.placeBid(bid, RejectedBidAttemptId.create(`restore-${bid.id.value}`));
+    }
+    const status = state.status.value;
+    const order = state.paymentOrder;
+    if (status === "CANCELLED") auction.cancel(state.sellerId);
+    if (status === "CLOSED" || status === "DESERTED" || status === "DEFAULTED") {
+      auction.close(order?.createdDate ?? state.publication.closesAt, order?.id);
+    }
+    if (auction.status.value !== (status === "DEFAULTED" ? "CLOSED" : status)) {
+      throw new BusinessRuleViolationError("Auction state is inconsistent");
+    }
+    if (order !== undefined) {
+      const generated = auction.paymentOrder;
+      if (generated === undefined || !order.winner.equals(generated.winner) ||
+          order.amount.value !== generated.amount.value ||
+          order.dueDate.getTime() !== generated.dueDate.getTime() ||
+          (status === "DEFAULTED") !== (order.status.value === "EXPIRED")) {
+        throw new BusinessRuleViolationError("Auction payment order is inconsistent");
+      }
+    } else if (auction.paymentOrder !== undefined || status === "DEFAULTED") {
+      throw new BusinessRuleViolationError("Auction payment order is required");
+    }
+    auction.statusValue = state.status;
+    auction.paymentOrderValue = order;
+    auction.rejectedBidAttempts.push(...state.rejectedAttempts);
+    return auction;
+  }
+
   private rejectBid(
     bid: Bid,
     rejectedAttemptId: RejectedBidAttemptId,
@@ -58,20 +101,32 @@ export class Auction {
 
     this.rejectedBidAttempts.push(rejectedAttempt);
 
-    throw new Error(reason);
+    throw new BusinessRuleViolationError(reason);
   }
 
-  cancel(): void {
+
+  cancel(requesterId: UserId): void {
+    if (!requesterId.equals(this.sellerId)) {
+      throw new ForbiddenOperationError(
+        "Only the auction seller can cancel the auction",
+      );
+    }
+
     if (!this.statusValue.equals(AuctionStatus.open())) {
-      throw new Error("Only open auctions can be cancelled");
+      throw new BusinessRuleViolationError(
+        "Only open auctions can be cancelled",
+      );
     }
 
     if (this.bids.length > 0) {
-      throw new Error("Auction with bids cannot be cancelled");
+      throw new BusinessRuleViolationError(
+        "Auction with bids cannot be cancelled",
+      );
     }
 
     this.statusValue = AuctionStatus.cancelled();
   }
+
 
   placeBid(bid: Bid, rejectedAttemptId: RejectedBidAttemptId): void {
     if (!this.statusValue.equals(AuctionStatus.open())) {
@@ -141,15 +196,15 @@ export class Auction {
 
   close(closedAt: Date, paymentOrderId?: PaymentOrderId): void {
     if (Number.isNaN(closedAt.getTime())) {
-      throw new Error("Auction closing date is invalid");
+      throw new BusinessRuleViolationError("Auction closing date is invalid");
     }
 
     if (!this.statusValue.equals(AuctionStatus.open())) {
-      throw new Error("Auction can only be closed once");
+      throw new BusinessRuleViolationError("Auction can only be closed once");
     }
 
     if (closedAt.getTime() < this.publicationData.closesAt.getTime()) {
-      throw new Error("Auction cannot close before its scheduled closing date");
+      throw new BusinessRuleViolationError("Auction cannot close before its scheduled closing date");
     }
 
     if (this.bids.length === 0) {
@@ -181,7 +236,7 @@ export class Auction {
 
   expirePayment(currentDate: Date): void {
     if (this.paymentOrderValue === undefined) {
-      throw new Error("Auction does not have a payment order");
+      throw new BusinessRuleViolationError("Auction does not have a payment order");
     }
 
     this.paymentOrderValue.expire(currentDate);
