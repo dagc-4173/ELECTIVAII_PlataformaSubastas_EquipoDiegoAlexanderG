@@ -12,7 +12,8 @@ La solución implementa una plataforma de subastas en línea siguiendo **Arquite
 - **Proyecto:** Plataforma de Subastas en Línea
 - **Modalidad:** Individual
 - **Repositorio:** `ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG`
-- **Entrega actual:** Entrega 1 - Modelado del dominio y de los recursos de la API
+- **Entrega actual:** Entrega 2 - API completa y comunicación en tiempo real (en desarrollo)
+- **Entrega 1:** Modelado del dominio y recursos de la API
 
 ---
 
@@ -82,7 +83,7 @@ Responsabilidades principales:
 - entidades;
 - objetos de valor;
 - agregado `Auction`;
-- reglas de negocio RN-01 a RN-23;
+- reglas de negocio implementadas según la matriz RN-01 a RN-23;
 - puertos de persistencia relacionados directamente con el dominio.
 
 ### Entidades principales
@@ -159,6 +160,7 @@ CancelAuctionUseCase
 PlaceBidUseCase
 CloseAuctionUseCase
 RegisterUserUseCase
+LoginUserUseCase
 ```
 
 Los casos de uso dependen de interfaces y no de implementaciones concretas.
@@ -178,6 +180,7 @@ La implementación concreta del repositorio pertenece a infraestructura.
 ```text
 IdGenerator
 PasswordHasher
+TokenService
 ```
 `PasswordHasher` permite que el caso de uso de registro solicite el hash de una contraseña sin depender de una implementación concreta de seguridad.
 
@@ -209,6 +212,8 @@ Responsabilidades:
 ### Seguridad
 
 `ScryptPasswordHasher` implementa `PasswordHasher` mediante `scrypt` de `node:crypto`, con una sal aleatoria por contraseña. Rechaza contraseñas vacías y almacena la sal y el hash; la respuesta HTTP de registro no incluye ninguno de estos valores.
+
+`JwtTokenService` implementa `TokenService`: firma y verifica JWT HS256, con sujeto de usuario, emisor, audiencia y expiración. El middleware verifica además que el usuario siga registrado.
 
 ### Persistencia en memoria
 
@@ -307,6 +312,8 @@ Actualmente:
 
 ```env
 PORT=3000
+JWT_SECRET=reemplazar-por-un-secreto-local-aleatorio-de-32-caracteres-o-mas
+JWT_EXPIRES_IN_SECONDS=3600
 ```
 
 Para desarrollo local puede crearse un archivo:
@@ -315,20 +322,22 @@ Para desarrollo local puede crearse un archivo:
 .env
 ```
 
-El servidor lee `process.env.PORT`, pero los scripts de npm no cargan `.env` automáticamente. Para usar ese archivo después de compilar:
+La aplicación carga `.env` automáticamente mediante `dotenv/config`. `PORT` es opcional (3000 por defecto); `JWT_SECRET` es obligatorio y debe tener al menos 32 caracteres. `JWT_EXPIRES_IN_SECONDS` es opcional (3600 por defecto) y debe ser un entero positivo seguro. Una configuración JWT inválida impide iniciar el servidor.
 
 ```powershell
 Copy-Item .env.example .env
+# Editar .env y asignar un secreto local aleatorio antes de iniciar.
 npm run build
-node --env-file=.env dist/server.js
-```
-
-También puede definirse la variable directamente en PowerShell:
-
-```powershell
-$env:PORT = "3001"
 npm start
 ```
+
+Puede generar un secreto con:
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+Las variables ya definidas en el entorno tienen prioridad sobre `.env`.
 
 No deben almacenarse credenciales reales dentro del repositorio.
 
@@ -411,16 +420,19 @@ Las pruebas utilizan Vitest.
 
 La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`.
 
-| Método | Ruta | Resultado exitoso |
-|---|---|---|
-| POST | `/users` | `201`: usuario registrado |
-| POST | `/auctions` | `201`: subasta publicada |
-| GET | `/auctions` | `200`: listado paginado |
-| GET | `/auctions/{auctionId}` | `200`: detalle e historial |
-| POST | `/auctions/{auctionId}/bids` | `201`: subasta con la puja aceptada |
-| DELETE | `/auctions/{auctionId}` | `200`: subasta cancelada |
+| Método | Ruta | Acceso | Resultado exitoso |
+|---|---|---|---|
+| POST | `/users` | Público | `201`: usuario registrado |
+| POST | `/auth/login` | Público | `200`: token JWT |
+| POST | `/auctions` | JWT | `201`: subasta publicada |
+| GET | `/auctions` | Público | `200`: listado paginado |
+| GET | `/auctions/{auctionId}` | JWT | `200`: detalle e historial |
+| POST | `/auctions/{auctionId}/bids` | JWT | `201`: subasta con la puja aceptada |
+| DELETE | `/auctions/{auctionId}` | JWT del vendedor | `200`: subasta cancelada |
 
-Los identificadores de usuarios, subastas, artículos, categorías, pujas e intentos rechazados se envían desde el cliente. Actualmente no hay autenticación ni comprobación de existencia del vendedor, postor, artículo o categoría al operar una subasta.
+Las operaciones protegidas requieren `Authorization: Bearer <accessToken>`. El vendedor y el postor se obtienen del JWT; la hora de la puja la fija el servidor. Los identificadores de usuario al registrar, subasta, artículo, categoría, puja e intento rechazado se proporcionan desde el cliente. No se comprueba la existencia de artículos ni categorías.
+
+El listado público usa el mismo mapper que el detalle: incluye `bids` y `rejectedBidAttempts`, con identificadores de postores y sin datos de contacto. La protección del detalle no implica que el historial solo esté disponible mediante esa ruta; RN-23 mantiene pendiente su verificación HTTP integral.
 
 ## Usuarios
 
@@ -451,6 +463,24 @@ Respuesta `201 Created`:
 
 Un correo ya registrado produce `400` con código `BUSINESS_RULE_VIOLATION` y mensaje `Email is already registered`. El registro no inicia una sesión ni devuelve un token.
 
+## Autenticación
+
+Tras registrar el usuario, iniciar sesión:
+
+```http
+POST /auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "diego@example.com",
+  "password": "clave-de-ejemplo"
+}
+```
+
+Respuesta `200`: `accessToken` (JWT), `tokenType` (`Bearer`) y `expiresIn` (segundos). Usar el token en cada petición protegida. No hay endpoint de renovación ni cierre de sesión. Para pujar, registrar otro usuario e iniciar sesión con sus credenciales; el vendedor no puede pujar en su propia subasta.
+
 ## Subastas
 
 ### Publicar una subasta
@@ -464,7 +494,6 @@ Ejemplo de cuerpo (ajustar las fechas al momento de la prueba para mantener la s
 ```json
 {
   "auctionId": "auction-001",
-  "sellerId": "seller-001",
   "itemId": "item-001",
   "categoryId": "category-001",
   "basePrice": 100000,
@@ -546,9 +575,7 @@ Ejemplo:
 ```json
 {
   "bidId": "bid-001",
-  "bidderId": "bidder-001",
   "amount": 100000,
-  "placedAt": "2026-09-05T13:00:00.000Z",
   "rejectedBidAttemptId": "rejected-attempt-001"
 }
 ```
@@ -603,11 +630,25 @@ Entre los principales códigos utilizados se encuentran:
 200 OK
 201 Created
 400 Bad Request
+401 Unauthorized
+403 Forbidden
 404 Not Found
 500 Internal Server Error
 ```
 
-Una violación de una regla de negocio no devuelve un código HTTP de éxito.
+| HTTP | Código | Situación |
+|---|---|---|
+| 400 | `INVALID_REQUEST` | Login sin email/contraseña válidos en el cuerpo |
+| 400 | `BUSINESS_RULE_VIOLATION` | Regla de negocio incumplida, incluido correo duplicado |
+| 401 | `INVALID_CREDENTIALS` | Credenciales incorrectas |
+| 401 | `AUTHENTICATION_REQUIRED` | Falta encabezado de autenticación |
+| 401 | `INVALID_TOKEN` | Token inválido, vencido o usuario inexistente |
+| 403 | `FORBIDDEN_OPERATION` | Cancelación por otro usuario o puja del vendedor |
+| 404 | `AUCTION_NOT_FOUND` | Detalle inexistente |
+| 404 | `RESOURCE_NOT_FOUND` | Subasta inexistente al pujar o cancelar |
+| 500 | `INTERNAL_SERVER_ERROR` | Error inesperado |
+
+El formato uniforme corresponde a los errores manejados explícitamente. No hay validación general de cuerpos HTTP ni manejador propio de rutas desconocidas; no se garantiza que toda entrada malformada produzca 400.
 
 ---
 
@@ -617,7 +658,7 @@ El proyecto utiliza cierre perezoso.
 
 No existe un proceso programado que cierre automáticamente las subastas.
 
-Al consultar una subasta por ID, la aplicación compara el cierre con la hora del servidor. Al intentar pujar, compara el cierre con `placedAt`, enviado por el cliente. El listado `GET /auctions` no ejecuta el cierre perezoso.
+Al consultar una subasta por ID, la aplicación compara el cierre con la hora del servidor. Al intentar pujar por HTTP, compara el cierre con la hora del servidor, que también fija `placedAt`. El listado `GET /auctions` no ejecuta el cierre perezoso.
 
 `CloseAuctionUseCase` existe, pero no tiene una ruta HTTP propia. La expiración de pagos está modelada en el dominio y no se ejecuta automáticamente ni dispone de endpoint.
 
@@ -655,7 +696,7 @@ La trazabilidad completa de RN-01 a RN-23 se encuentra en:
 docs/business-rules-traceability.md
 ```
 
-Nota: la matriz todavía marca RN-22 como pendiente, aunque `RegisterUserUseCase` ya verifica la unicidad del correo y cuenta con pruebas.
+RN-22 está implementada y probada. RN-17 es parcial; RN-18 y RN-19 están pendientes. RN-23 mantiene pendiente una prueba HTTP integral específica.
 
 Este documento permite identificar para cada regla:
 
@@ -692,7 +733,8 @@ Incluye:
 - esquemas;
 - errores HTTP;
 - filtros;
-- paginación.
+- paginación;
+- autenticación JWT y requisitos `BearerAuth`.
 
 ---
 
@@ -732,11 +774,12 @@ CancelAuctionUseCase
 PlaceBidUseCase
 CloseAuctionUseCase
 RegisterUserUseCase
+LoginUserUseCase
 ```
 
 ## Infrastructure
 
-Incluye pruebas del repositorio de subastas en memoria y de `ScryptPasswordHasher`. No hay actualmente pruebas HTTP de integración.
+Incluye pruebas de ambos repositorios en memoria, `ScryptPasswordHasher`, `JwtTokenService` y pruebas HTTP con Supertest para login, autenticación, autorización y clasificación de errores. La prueba integral específica de privacidad del historial (RN-23) sigue pendiente.
 
 Las pruebas están diseñadas para demostrar reglas de negocio y comportamiento funcional, no únicamente para aumentar cobertura.
 
@@ -841,7 +884,7 @@ final
 
 ---
 
-# Estado actual de la Entrega 1
+# Estado actual de la Entrega 2 (en desarrollo)
 
 Actualmente se encuentra implementado:
 
@@ -859,16 +902,17 @@ Actualmente se encuentra implementado:
 - registro de usuario con validación de correo único;
 - filtros por categoría y estado;
 - paginación;
-- API REST de subastas y registro de usuarios;
+- API REST de subastas, registro y login de usuarios;
+- autenticación JWT y autorización para cancelar y pujar;
 - hash de contraseñas con `scrypt`;
 - DTOs HTTP;
 - manejo uniforme de errores;
-- configuración del puerto mediante variable de entorno;
+- configuración de puerto y JWT mediante variables de entorno;
 - pruebas unitarias;
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Algunas funcionalidades relacionadas con autenticación completa, notificaciones externas, procesamiento de eventos de pago y comunicación en tiempo real quedan reservadas para entregas posteriores según el alcance acumulativo del proyecto.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real y la verificación integral específica de RN-23. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
 
 ---
 
@@ -876,7 +920,7 @@ Algunas funcionalidades relacionadas con autenticación completa, notificaciones
 
 ## Entrega 2
 
-La siguiente etapa ampliará la solución con los componentes definidos por el documento del proyecto, incluyendo funcionalidades de backend adicionales y comunicación en tiempo real.
+La etapa actual debe completar la solución con los componentes definidos por el documento del proyecto, incluyendo funcionalidades de backend adicionales y comunicación en tiempo real.
 
 ## Entrega 3
 
@@ -890,3 +934,7 @@ Proyecto académico desarrollado para:
 
 **Electiva II - Desarrollo**  
 **Ingeniería de Software**
+
+## Referencia académica y revisión de fase 2.16
+
+La guía académica original no está incluida en este checkout ni entre los archivos accesibles del chat referenciado. Los estados anteriores se contrastan con el código, las pruebas y OpenAPI; la conformidad completa con la rúbrica queda pendiente de revisar el documento original.
