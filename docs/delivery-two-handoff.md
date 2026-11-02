@@ -85,7 +85,7 @@ npm run verify:persistence
 ## Condiciones que requieren resolución antes de declarar entrega final
 
 - Identificación académica completada en README con el nombre y equipo suministrados por el autor.
-- Confirmar la licencia ISC declarada y completar el archivo de licencia con el titular correcto; todavía no hay `LICENSE`.
+- Licencia ISC confirmada por el autor y archivo `LICENSE` añadido con copyright 2026 Diego Alexander Gutiérrez Cardona; coincide con `package.json`.
 - El autor informó como fecha vigente el 3 de noviembre de 2026. Se conserva esta información como confirmación del autor, frente a la fecha anterior del PDF; no se atribuye una verificación independiente con el docente.
 - Revisar R-04: un valor de `JWT_SECRET` del ejemplo permanece en el historial antiguo. No coincide con los valores de los `.env` locales revisados, pero eso no prueba que nunca se haya usado en otro entorno. No se imprimió ni redistribuyó en este documento. No se reescribió historial.
 - Revisar la adaptación de reconstitución respecto al criterio estricto de no modificar dominio al cambiar persistencia. El núcleo no importa tecnología y los casos de uso/puertos de repositorio permanecieron iguales durante ese cambio; la fábrica añadida está documentada.

@@ -17,7 +17,7 @@ Los originales se consultaron en la carpeta local `Electiva II` suministrada por
 | 2 | RF-17: consulta de orden por ganador | Implementado: `GET /auctions/{auctionId}/payment-order`, acceso exclusivo del ganador | Completado con pruebas HTTP y OpenAPI; consulta de solo lectura tras cierre |
 | 3 | Persistencia real, obligatoria en Entrega 2 | Implementada con SQLite local, adaptadores detrás de los puertos y recuperación del agregado completo | Verificada con bases temporales y dos procesos independientes; revisar la fábrica de reconstitución de dominio descrita en `sqlite-persistence.md` |
 | 4 | RF-12–15 y RNF-05: tiempo real | Implementados puerto de salida, adaptador `ws`, autenticación y suscripción por subasta | Verificado con dos clientes reales: difusión, avisos personales, aislamiento, cierre único y fallos de guardado; contrato en `websocket-api.md` |
-| 5 | Calidad y documentación | Validación HTTP y errores de JSON, tamaño, contenido y rutas desconocidas implementados | Verificados con pruebas reales; completar identificación académica, licencia y revisión de entrega |
+| 5 | Calidad y documentación | Validación HTTP y errores de JSON, tamaño, contenido y rutas desconocidas implementados | Verificados con pruebas reales; identificación académica y licencia ISC completadas; continuar revisión de entrega |
 | 6 | RF-18–20 / RN-17–19: webhook | Confirmación solo en dominio | Verificación de origen antes de mutar, registro idempotente y simulador; opcional en Entrega 2, obligatorio para completar Entrega 3 |
 
 El perfil y la consulta de órdenes deben diseñarse antes del adaptador definitivo para que este cubra las consultas reales. No es necesario proveedor de pagos real, nube, colas ni soporte multiproceso. RF-16 (cantidad de participantes) es opcional.
@@ -28,7 +28,7 @@ El detalle requiere JWT y usuario existente. Se añadieron pruebas HTTP que crea
 
 ## Condiciones de entrega por comprobar
 
-- Identificación académica completada con los datos suministrados por el autor. Queda confirmar la licencia coherente con `package.json` (actualmente ISC).
+- Identificación académica completada con los datos suministrados por el autor. Licencia ISC confirmada y archivo `LICENSE` añadido, coherente con `package.json`.
 - Verificar acceso público al repositorio, ejecución de la rama de entrega y demostración con dos clientes.
 - R-15 toma la versión de `main` antes de la fecha límite. Esta revisión no fusiona con `main`; la integración final requiere una decisión de entrega explícita.
 - R-04 prohíbe claves en el historial. El commit anterior retiró un valor de `JWT_SECRET` del ejemplo actual, pero ello no lo elimina del historial. Confirmar si fue un valor utilizado y sustituirlo en los entornos que lo usen; cualquier reescritura de historial queda fuera de esta revisión.
@@ -72,4 +72,8 @@ Instalación limpia verificada en una copia sin dependencias, `.env` ni base loc
 
 ## Datos académicos confirmados por el autor
 
-Integrante y nombre oficial del equipo: **Diego Alexander Gutiérrez Cardona**. Fecha de entrega informada: **3 de noviembre de 2026**. README actualizado. La decisión final sobre licencia permanece pendiente; `package.json` continúa declarando ISC y todavía no se agrega `LICENSE`.
+Integrante y nombre oficial del equipo: **Diego Alexander Gutiérrez Cardona**. Fecha de entrega informada: **3 de noviembre de 2026**. README actualizado. El autor confirmó la licencia ISC: `LICENSE` añadido con su autoría de 2026, coherente con `package.json`.
+
+## Licencia confirmada
+
+Se añadió `LICENSE` con el texto ISC y copyright 2026 Diego Alexander Gutiérrez Cardona, tras confirmación explícita del autor. Se actualizaron README y guía de revisión. Este cambio no modifica código, dependencias ni la validación técnica de 274 pruebas.

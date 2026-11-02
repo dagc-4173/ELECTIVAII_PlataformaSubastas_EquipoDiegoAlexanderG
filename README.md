@@ -1022,4 +1022,4 @@ Se revisaron `Proyecto Subastas Electiva II.pdf` (apartados 5, 6 y 9) y `Guía p
 
 ## Licencia
 
-`package.json` declara la licencia ISC. La revisión de entrega debe confirmar esta elección y añadir el texto de licencia que corresponda antes de la distribución final.
+Este proyecto se distribuye bajo la [licencia ISC](LICENSE). Copyright 2026 Diego Alexander Gutiérrez Cardona. La declaración de `package.json` coincide con el archivo de licencia.
