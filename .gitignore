@@ -22,3 +22,10 @@ Thumbs.db
 
 # VS Code local settings
 .vscode/
+
+# Local database and SQLite sidecar files
+data/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*

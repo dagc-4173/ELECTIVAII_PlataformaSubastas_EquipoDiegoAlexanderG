@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "dev:build": "tsc --watch",
     "dev:server": "node --watch dist/server.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify:persistence": "npm run build && node scripts/verify-persistence.mjs"
   },
   "repository": {
     "type": "git",
@@ -36,5 +37,8 @@
     "dotenv": "^18.0.9",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
   }
 }

@@ -3,12 +3,15 @@ import { beforeAll, afterAll, describe, expect, it, vi } from "vitest";
 import type { Express } from "express";
 
 let app: Express;
+let closeDatabase: () => void;
 const tokens: Record<string, string> = {};
 
 beforeAll(async () => {
   vi.stubEnv("JWT_SECRET", "profile-integration-test-secret-0123456789");
   vi.stubEnv("JWT_EXPIRES_IN_SECONDS", "3600");
-  app = (await import("../../../src/infrastructure/app.js")).app;
+  const application = (await import("../../../src/infrastructure/createApp.js")).createApp(":memory:");
+  app = application.app;
+  closeDatabase = application.close;
   for (const id of ["profile-seller", "profile-bidder", "profile-observer"]) {
     const registration = await request(app).post("/users").send({
       userId: id, name: id, email: `${id}@example.com`, password: "profile-test-password",
@@ -39,7 +42,7 @@ beforeAll(async () => {
   expect(rejected.status).toBe(400);
 });
 
-afterAll(() => vi.unstubAllEnvs());
+afterAll(() => { closeDatabase(); vi.unstubAllEnvs(); });
 
 describe("RF-03 authenticated profile", () => {
   it("returns the seller profile and published auctions without password data", async () => {

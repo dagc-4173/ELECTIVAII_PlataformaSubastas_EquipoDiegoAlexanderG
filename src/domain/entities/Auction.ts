@@ -45,6 +45,47 @@ export class Auction {
     );
   }
 
+  static reconstitute(state: {
+    id: AuctionId;
+    sellerId: UserId;
+    itemId: ItemId;
+    categoryId: CategoryId;
+    publication: AuctionPublicationData;
+    status: AuctionStatus;
+    bids: readonly Bid[];
+    rejectedAttempts: readonly RejectedBidAttempt[];
+    paymentOrder: PaymentOrder | undefined;
+  }): Auction {
+    const auction = Auction.publish(state.id, state.sellerId, state.itemId, state.categoryId, state.publication);
+    for (const bid of state.bids) {
+      auction.placeBid(bid, RejectedBidAttemptId.create(`restore-${bid.id.value}`));
+    }
+    const status = state.status.value;
+    const order = state.paymentOrder;
+    if (status === "CANCELLED") auction.cancel(state.sellerId);
+    if (status === "CLOSED" || status === "DESERTED" || status === "DEFAULTED") {
+      auction.close(order?.createdDate ?? state.publication.closesAt, order?.id);
+    }
+    if (auction.status.value !== (status === "DEFAULTED" ? "CLOSED" : status)) {
+      throw new BusinessRuleViolationError("Auction state is inconsistent");
+    }
+    if (order !== undefined) {
+      const generated = auction.paymentOrder;
+      if (generated === undefined || !order.winner.equals(generated.winner) ||
+          order.amount.value !== generated.amount.value ||
+          order.dueDate.getTime() !== generated.dueDate.getTime() ||
+          (status === "DEFAULTED") !== (order.status.value === "EXPIRED")) {
+        throw new BusinessRuleViolationError("Auction payment order is inconsistent");
+      }
+    } else if (auction.paymentOrder !== undefined || status === "DEFAULTED") {
+      throw new BusinessRuleViolationError("Auction payment order is required");
+    }
+    auction.statusValue = state.status;
+    auction.paymentOrderValue = order;
+    auction.rejectedBidAttempts.push(...state.rejectedAttempts);
+    return auction;
+  }
+
   private rejectBid(
     bid: Bid,
     rejectedAttemptId: RejectedBidAttemptId,

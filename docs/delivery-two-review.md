@@ -13,9 +13,9 @@ Los originales se consultaron en la carpeta local `Electiva II` suministrada por
 
 | Prioridad | Alcance | Evidencia actual | Trabajo necesario |
 |---|---|---|---|
-| 1 | RF-03: perfil y actividad | Implementado: `GET /users/me`, `GetUserProfileUseCase` y cinco pruebas HTTP con registro/login reales | Completado con repositorios en memoria; verificar también con el futuro adaptador real |
+| 1 | RF-03: perfil y actividad | Implementado: `GET /users/me`, `GetUserProfileUseCase` y cinco pruebas HTTP con registro/login reales | Completado; pruebas HTTP también ejecutadas con SQLite aislado y verificación de recuperación entre procesos |
 | 2 | RF-17: consulta de orden por ganador | Implementado: `GET /auctions/{auctionId}/payment-order`, acceso exclusivo del ganador | Completado con pruebas HTTP y OpenAPI; consulta de solo lectura tras cierre |
-| 3 | Persistencia real, obligatoria en Entrega 2 | Solo repositorios en memoria | Elegir motor justificando ejecución local, implementar adaptadores detrás de los puertos, conservar agregado e historial, verificar reinicios y unicidad |
+| 3 | Persistencia real, obligatoria en Entrega 2 | Implementada con SQLite local, adaptadores detrás de los puertos y recuperación del agregado completo | Verificada con bases temporales y dos procesos independientes; revisar la fábrica de reconstitución de dominio descrita en `sqlite-persistence.md` |
 | 4 | RF-12–15 y RNF-05: tiempo real | No hay servidor WebSocket ni puerto de eventos | Puerto de salida, eventos después de persistir, suscripción por subasta, nueva puja, aviso al superado y cierre; prueba con dos clientes |
 | 5 | Calidad y documentación | Hay errores uniformes para errores explícitos; no hay validación HTTP general | Validar entradas, revisar errores de JSON y rutas desconocidas, actualizar contratos y probar instalación desde cero |
 | 6 | RF-18–20 / RN-17–19: webhook | Confirmación solo en dominio | Verificación de origen antes de mutar, registro idempotente y simulador; opcional en Entrega 2, obligatorio para completar Entrega 3 |
@@ -45,3 +45,9 @@ Endpoint `GET /users/me` autenticado; identidad exclusivamente del token. Listas
 ## Avance RF-17
 
 La consulta devuelve la orden existente únicamente al ganador identificado por JWT. No genera órdenes ni confirma o expira pagos. El cierre continúa en los casos de uso de detalle y puja. Se verificaron 220 pruebas en 42 archivos, TypeScript y compilación; ocho pruebas nuevas cubren consulta, repetición, plazo, permisos, autenticación y ausencia de orden. El siguiente bloque es persistencia real detrás de los puertos existentes.
+
+## Avance de persistencia
+
+SQLite es el adaptador por defecto. Los puertos y casos de uso permanecen sin cambios. Se añadió una fábrica explícita de reconstitución al agregado: esto es un cambio acotado de dominio respecto a la formulación estricta de la guía, sin SQL ni dependencias técnicas en el núcleo; no se presenta como ausencia total de cambios de dominio. La decisión y las limitaciones están en `sqlite-persistence.md`.
+
+El siguiente bloque obligatorio es RF-12–15: WebSockets y puerto de salida de eventos.

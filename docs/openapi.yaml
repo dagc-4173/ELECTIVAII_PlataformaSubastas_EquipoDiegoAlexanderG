@@ -234,6 +234,8 @@ paths:
           $ref: '#/components/responses/BusinessRuleViolation'
         '401':
           $ref: '#/components/responses/AuthenticationRequired'
+        '409':
+          $ref: '#/components/responses/ConcurrentModification'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -261,6 +263,8 @@ paths:
           $ref: '#/components/responses/AuthenticationRequired'
         '403':
           $ref: '#/components/responses/ForbiddenOperation'
+        '409':
+          $ref: '#/components/responses/ConcurrentModification'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /auctions/{auctionId}/bids:
@@ -297,6 +301,8 @@ paths:
           $ref: '#/components/responses/BusinessRuleViolation'
         '401':
           $ref: '#/components/responses/AuthenticationRequired'
+        '409':
+          $ref: '#/components/responses/ConcurrentModification'
         '500':
           $ref: '#/components/responses/InternalServerError'
       description: El postor se obtiene del JWT y la fecha de la puja se genera en el servidor.
@@ -695,6 +701,16 @@ components:
             error:
               code: FORBIDDEN_OPERATION
               message: Only the seller can cancel the auction
+    ConcurrentModification:
+      description: La subasta cambió después de la lectura. Recargar y decidir si reintentar; la escritura obsoleta no fue aplicada.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: CONCURRENT_MODIFICATION
+              message: Auction changed; reload and retry the operation
     InternalServerError:
       description: Error inesperado del servidor
       content:

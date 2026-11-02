@@ -3,13 +3,16 @@ import type { Express } from "express";
 import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 let app: Express;
+let closeDatabase: () => void;
 const tokens: Record<string, string> = {};
 let sequence = 0;
 
 beforeAll(async () => {
   vi.stubEnv("JWT_SECRET", "payment-query-test-secret-0123456789abcdef");
   vi.stubEnv("JWT_EXPIRES_IN_SECONDS", "604800");
-  app = (await import("../../../src/infrastructure/app.js")).app;
+  const application = (await import("../../../src/infrastructure/createApp.js")).createApp(":memory:");
+  app = application.app;
+  closeDatabase = application.close;
   for (const id of ["payment-seller", "payment-winner", "payment-observer"]) {
     const registered = await request(app).post("/users").send({
       userId: id, name: id, email: `${id}@example.com`, password: "payment-query-password",
@@ -23,7 +26,7 @@ beforeAll(async () => {
   }
 });
 afterEach(() => vi.useRealTimers());
-afterAll(() => vi.unstubAllEnvs());
+afterAll(() => { closeDatabase(); vi.unstubAllEnvs(); });
 
 async function createAuction(withBid: boolean, close: boolean) {
   const auctionId = `payment-auction-${++sequence}`;

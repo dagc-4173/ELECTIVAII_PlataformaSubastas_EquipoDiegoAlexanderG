@@ -39,7 +39,7 @@ La primera entrega se concentra en:
 - pruebas unitarias;
 - documentación técnica del repositorio.
 
-Para esta entrega no se utiliza una base de datos real. La persistencia se realiza mediante adaptadores en memoria detrás de puertos.
+En la Entrega 1 se utilizó persistencia en memoria detrás de puertos. La ejecución actual utiliza SQLite como persistencia real para la Entrega 2.
 
 ---
 
@@ -207,7 +207,7 @@ Responsabilidades:
 - rutas REST;
 - mappers de respuesta;
 - manejo de errores;
-- persistencia en memoria;
+- persistencia SQLite mediante adaptadores;
 - generación concreta de identificadores;
 - composición de dependencias.
 
@@ -217,18 +217,15 @@ Responsabilidades:
 
 `JwtTokenService` implementa `TokenService`: firma y verifica JWT HS256, con sujeto de usuario, emisor, audiencia y expiración. El middleware verifica además que el usuario siga registrado.
 
-### Persistencia en memoria
+### Persistencia SQLite
 
-Actualmente existen:
+El servidor utiliza `SqliteUserRepository` y `SqliteAuctionRepository`, que implementan los puertos existentes. Se guarda el agregado completo de subasta como un documento JSON versionado dentro de una fila SQLite: publicación, estado, pujas, intentos rechazados y orden de pago. Cada guardado es atómico. Los usuarios se almacenan en una tabla con índices únicos para identificador y correo normalizado; la contraseña se conserva solo como hash.
 
-```text
-InMemoryAuctionRepository
-InMemoryUserRepository
-```
+La base se crea al iniciar, por defecto en `./data/auctions.sqlite`. Las carpetas padre se crean automáticamente. Los datos sobreviven al reinicio; para recuperarlos hay que conservar el archivo y usar la misma ruta. El archivo y sus auxiliares quedan fuera de Git. `DATABASE_PATH=:memory:` se reserva para pruebas aisladas y no conserva datos.
 
-Los datos se pierden al reiniciar el servidor y no se comparten entre procesos.
+Las lecturas reconstruyen entidades independientes. Un guardado con una versión obsoleta devuelve `409 CONCURRENT_MODIFICATION`, sin sobrescribir la versión vigente; el cliente debe recargar y decidir si reintenta. No se promete soporte para varios procesos. Los documentos inválidos o versiones futuras se rechazan explícitamente.
 
-Estas clases implementan los puertos del dominio y permiten sustituir la persistencia en futuras entregas sin modificar el dominio ni los casos de uso.
+Los adaptadores en memoria se conservan para pruebas. Los casos de uso y sus puertos no cambiaron. Se añadió `Auction.reconstitute()` como fábrica de dominio sin dependencias de SQLite para recuperar el agregado y comprobar coherencia mediante sus reglas. Véase [decisión de persistencia](docs/sqlite-persistence.md), incluida esta adaptación respecto a la guía.
 
 ### Generación de identificadores
 
@@ -248,7 +245,7 @@ IdGenerator
 
 El backend utiliza:
 
-- Node.js
+- Node.js 24.x, versión 24.15.0 o posterior
 - Express.js
 - TypeScript
 - Vitest
@@ -262,7 +259,7 @@ El proyecto usa TypeScript en modo estricto.
 
 Se requiere tener instalado:
 
-- Node.js
+- Node.js 24.x, versión 24.15.0 o posterior
 - npm
 - Git
 
@@ -316,6 +313,7 @@ Actualmente:
 PORT=3000
 JWT_SECRET=reemplazar-por-un-secreto-local-aleatorio-de-32-caracteres-o-mas
 JWT_EXPIRES_IN_SECONDS=3600
+DATABASE_PATH=./data/auctions.sqlite
 ```
 
 Para desarrollo local puede crearse un archivo:
@@ -339,7 +337,7 @@ Puede generar un secreto con:
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Las variables ya definidas en el entorno tienen prioridad sobre `.env`.
+Las variables ya definidas en el entorno tienen prioridad sobre `.env`. `DATABASE_PATH` es opcional y vale `./data/auctions.sqlite` por defecto; una ruta relativa se resuelve desde el directorio de inicio de Node. Mantener la misma ruta al reiniciar. Una ruta vacía o sin permisos de escritura impide iniciar el servidor.
 
 No deben almacenarse credenciales reales dentro del repositorio.
 
@@ -404,7 +402,7 @@ npm run dev:build
 npm run dev:server
 ```
 
-Cada reinicio vacía los repositorios en memoria.
+Los reinicios conservan los datos en el archivo SQLite configurado. Las pruebas usan bases temporales o `:memory:` y no escriben en la base de desarrollo.
 
 En Windows, si PowerShell bloquea `npm.ps1`, utilizar `npm.cmd` en los comandos anteriores (por ejemplo, `npm.cmd run build`).
 
@@ -414,7 +412,13 @@ En Windows, si PowerShell bloquea `npm.ps1`, utilizar `npm.cmd` en los comandos 
 npm test
 ```
 
-Las pruebas utilizan Vitest.
+Las pruebas utilizan Vitest. Para verificar además la recuperación entre dos procesos Node independientes:
+
+```bash
+npm run verify:persistence
+```
+
+Este comando compila, crea una base temporal, guarda usuarios y una subasta adjudicada en un proceso, y verifica login, perfil, historial y orden desde otro proceso. Elimina únicamente su base temporal al finalizar.
 
 ---
 
@@ -663,6 +667,7 @@ Entre los principales códigos utilizados se encuentran:
 401 Unauthorized
 403 Forbidden
 404 Not Found
+409 Conflict
 500 Internal Server Error
 ```
 
@@ -676,6 +681,7 @@ Entre los principales códigos utilizados se encuentran:
 | 403 | `FORBIDDEN_OPERATION` | Cancelación por otro usuario o puja del vendedor |
 | 404 | `AUCTION_NOT_FOUND` | Detalle inexistente |
 | 404 | `RESOURCE_NOT_FOUND` | Subasta inexistente al pujar o cancelar |
+| 409 | `CONCURRENT_MODIFICATION` | Otra operación guardó la subasta; recargar antes de reintentar |
 | 500 | `INTERNAL_SERVER_ERROR` | Error inesperado |
 
 El formato uniforme corresponde a los errores manejados explícitamente. No hay validación general de cuerpos HTTP ni manejador propio de rutas desconocidas; no se garantiza que toda entrada malformada produzca 400.
@@ -811,7 +817,7 @@ GetPaymentOrderUseCase
 
 ## Infrastructure
 
-Incluye pruebas de ambos repositorios en memoria, `ScryptPasswordHasher`, `JwtTokenService` y pruebas HTTP con Supertest para login, autenticación, autorización y clasificación de errores. La prueba integral de RN-23 verifica acceso al detalle por un usuario registrado ajeno a la puja, ausencia de datos privados y rechazo de acceso anónimo al detalle.
+Incluye pruebas de repositorios en memoria y SQLite (recuperación, estados completos, unicidad y conflictos de escritura), `ScryptPasswordHasher`, `JwtTokenService` y pruebas HTTP con Supertest para login, autenticación, autorización y clasificación de errores. La prueba integral de RN-23 verifica acceso al detalle por un usuario registrado ajeno a la puja, ausencia de datos privados y rechazo de acceso anónimo al detalle.
 
 Las pruebas están diseñadas para demostrar reglas de negocio y comportamiento funcional, no únicamente para aumentar cobertura.
 
@@ -896,9 +902,11 @@ final
 │   │   │   └── routes/
 │   │   ├── id/
 │   │   ├── security/
+│   │   ├── createApp.ts
 │   │   ├── app.ts
 │   │   └── persistence/
-│   │       └── memory/
+│   │       ├── memory/
+│   │       └── sqlite/
 │   │
 │   └── server.ts
 │
@@ -928,7 +936,7 @@ Actualmente se encuentra implementado:
 - adjudicación;
 - orden de pago dentro del dominio y consulta protegida para el ganador (RF-17);
 - puertos de persistencia;
-- persistencia en memoria;
+- persistencia SQLite mediante adaptadores;
 - casos de uso;
 - cierre perezoso;
 - registro de usuario con validación de correo único;
@@ -945,7 +953,7 @@ Actualmente se encuentra implementado:
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real, la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real. La persistencia real SQLite ya está implementada. No se declara completa la Entrega 2.
 
 ---
 
