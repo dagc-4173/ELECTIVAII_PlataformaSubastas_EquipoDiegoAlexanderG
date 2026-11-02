@@ -89,7 +89,7 @@ const authController = new AuthController(
   jwtExpiresInSeconds,
 );
 
-const authenticate = createAuthenticate(tokenService);
+const authenticate = createAuthenticate(tokenService, userRepository,);
 
 app.use("/auth", createAuthRouter(authController));
 

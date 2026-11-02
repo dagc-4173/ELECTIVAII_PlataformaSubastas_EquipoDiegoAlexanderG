@@ -24,11 +24,33 @@ import { RandomIdGenerator } from "../../../src/infrastructure/id/RandomIdGenera
 import { InMemoryAuctionRepository } from "../../../src/infrastructure/persistence/memory/InMemoryAuctionRepository.js";
 import { JwtTokenService } from "../../../src/infrastructure/security/JwtTokenService.js";
 
+import { User } from "../../../src/domain/entities/User.js";
+import { Email } from "../../../src/domain/value-objects/Email.js";
+import { InMemoryUserRepository } from "../../../src/infrastructure/persistence/memory/InMemoryUserRepository.js";
+
 async function createFixture() {
   const repository = new InMemoryAuctionRepository();
   const idGenerator = new RandomIdGenerator();
   const publishedAt = new Date(Date.now() - 60_000);
   const closesAt = new Date(publishedAt.getTime() + 24 * 60 * 60 * 1000,);
+
+  const userRepository = new InMemoryUserRepository();
+
+  for (const userId of [
+    "seller-001",
+    "seller-002",
+    "bidder-001",
+    "user-002",
+  ]) {
+    await userRepository.save(
+      User.create(
+        UserId.create(userId),
+        `Test ${userId}`,
+        Email.create(`${userId}@example.com`),
+        "test-password-hash",
+      ),
+    );
+  }
 
   await repository.save(
     Auction.publish(
@@ -62,12 +84,12 @@ async function createFixture() {
 
   app.use(
     "/auctions",
-    createAuctionRouter(controller, createAuthenticate(tokenService)),
+    createAuctionRouter(controller, createAuthenticate(tokenService, userRepository),),
   );
 
   app.use(errorHandler);
 
-  return { app, repository, tokenService };
+  return { app, repository, tokenService, userRepository };
 }
 
 describe("RF-07 - HTTP auction cancellation authorization", () => {
