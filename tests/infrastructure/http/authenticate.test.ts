@@ -166,4 +166,3 @@ describe("JWT authentication middleware", () => {
   });
 
 });
-

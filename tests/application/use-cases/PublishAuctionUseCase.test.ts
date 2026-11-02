@@ -28,7 +28,7 @@ class FakeAuctionRepository implements AuctionRepository {
 describe("PublishAuctionUseCase", () => {
   it("should publish and persist a valid auction", async () => {
     const repository = new FakeAuctionRepository();
-    const useCase = new PublishAuctionUseCase(repository);
+    const useCase = new PublishAuctionUseCase(repository, () => new Date("2026-09-04T12:00:00Z"));
 
     const auction = await useCase.execute({
       auctionId: "auction-001",
@@ -50,7 +50,7 @@ describe("PublishAuctionUseCase", () => {
 
   it("should reject publishing an auction with an existing auction ID", async () => {
     const repository = new FakeAuctionRepository();
-    const useCase = new PublishAuctionUseCase(repository);
+    const useCase = new PublishAuctionUseCase(repository, () => new Date("2026-09-04T12:00:00Z"));
 
     const input = {
       auctionId: "auction-001",
@@ -75,5 +75,15 @@ describe("PublishAuctionUseCase", () => {
     const auctions = await repository.findAll();
 
     expect(auctions).toHaveLength(1);
+  });
+});
+describe("RN-02 server publication clock", () => {
+  it.each(["2026-09-05T12:00:00Z", "2026-09-06T12:00:00Z"])("rejects expired publication at server time %s without saving", async (currentDate) => {
+    const repository = new FakeAuctionRepository();
+    const useCase = new PublishAuctionUseCase(repository, () => new Date(currentDate));
+    await expect(useCase.execute({ auctionId: "expired", sellerId: "seller", itemId: "item", categoryId: "category",
+      basePrice: 100, minimumIncrement: 10, publishedAt: new Date("2026-09-04T12:00:00Z"), closesAt: new Date("2026-09-05T12:00:00Z") }))
+      .rejects.toThrow("Auction closing date must be in the future");
+    expect(await repository.findAll()).toEqual([]);
   });
 });

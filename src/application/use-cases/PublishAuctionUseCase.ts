@@ -20,7 +20,10 @@ export interface PublishAuctionInput {
 }
 
 export class PublishAuctionUseCase {
-  constructor(private readonly auctionRepository: AuctionRepository) {}
+  constructor(
+    private readonly auctionRepository: AuctionRepository,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
 
   async execute(input: PublishAuctionInput): Promise<Auction> {
     const auctionId = AuctionId.create(input.auctionId);
@@ -37,6 +40,8 @@ export class PublishAuctionUseCase {
       input.publishedAt,
       input.closesAt,
     );
+
+    publicationData.assertCanBePublishedAt(this.now());
 
     const auction = Auction.publish(
       auctionId,

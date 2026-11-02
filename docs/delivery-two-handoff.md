@@ -4,7 +4,7 @@ Fecha de revisión: 2 de noviembre de 2026. Rama candidata: `release/entrega-2`.
 
 Integrante y equipo confirmados por el autor: **Diego Alexander Gutiérrez Cardona**. Fecha de entrega informada por el autor: **3 de noviembre de 2026**.
 
-Esta rama acumula autenticación, documentación, perfil, consulta de orden, SQLite, WebSockets y validaciones HTTP. No constituye por sí sola la entrega académica ni una integración en `main`. El último cambio de código previo a esta preparación es `d7d79de`.
+Esta rama acumula autenticación, documentación, perfil, consulta de orden, SQLite, WebSockets y validaciones HTTP. No constituye por sí sola la entrega académica ni una integración en `main`. La revisión final añadió una corrección RN-02 para impedir publicar subastas ya vencidas con fechas históricas proporcionadas por el cliente.
 
 ## Estado verificable
 
@@ -20,7 +20,7 @@ Esta rama acumula autenticación, documentación, perfil, consulta de orden, SQL
 | HTTP | Formato validado y errores JSON uniformes | `tests/infrastructure/http/inputValidation.test.ts` |
 | Documentación | Instalación, contratos REST y WebSocket, decisiones de SQLite | README, OpenAPI y documentos enlazados al final |
 
-Validación de la implementación: 274 pruebas en 46 archivos; TypeScript, compilación, OpenAPI formal y recuperación SQLite entre dos procesos correctos. Instalación limpia comprobada con `npm ci`, verificación de tipos y recuperación entre procesos, sin `.env` ni base de desarrollo. Las importaciones revisadas del dominio y aplicación no dependen de Express, `ws`, SQLite ni infraestructura.
+Validación final de la implementación: 277 pruebas en 46 archivos; TypeScript, compilación, OpenAPI formal y recuperación SQLite entre dos procesos correctos. Instalación limpia comprobada con `npm ci`, verificación de tipos y recuperación entre procesos, sin `.env` ni base de desarrollo. Las importaciones revisadas del dominio y aplicación no dependen de Express, `ws`, SQLite ni infraestructura.
 
 GitHub confirmó que el repositorio es público el día de la revisión. Las ramas publicadas de trabajo forman una cadena: no es necesario mezclar cada una individualmente si se integra la candidata que las contiene. La revisión final debe comparar `release/entrega-2` con la versión vigente de `main`.
 
@@ -105,3 +105,7 @@ El listado público incluye historiales sin datos de contacto; la protección JW
 - [API WebSocket y demostración de dos terminales](websocket-api.md)
 - [Decisión SQLite](sqlite-persistence.md)
 - [Revisión académica por avances](delivery-two-review.md)
+
+## Revisión final del PR
+
+La comprobación contra todo el diff de `main` corrigió tres detalles de formato. Se reprodujo por HTTP un defecto RN-02 (publicación vencida devolvía 201); se corrigió con validación de la hora del servidor dentro del dominio, coordinada por el caso de uso, y se agregaron pruebas HTTP y de frontera. La reconstitución de subastas históricas de SQLite se conserva. GitHub no reportó estados de CI para el commit consultado; la evidencia de validación es local. La fusión en `main` sigue requiriendo autorización del autor.

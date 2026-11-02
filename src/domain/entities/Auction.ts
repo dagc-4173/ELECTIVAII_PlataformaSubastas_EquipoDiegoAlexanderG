@@ -104,7 +104,7 @@ export class Auction {
     throw new BusinessRuleViolationError(reason);
   }
 
-  
+
   cancel(requesterId: UserId): void {
     if (!requesterId.equals(this.sellerId)) {
       throw new ForbiddenOperationError(

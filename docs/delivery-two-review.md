@@ -83,3 +83,7 @@ Se añadió `LICENSE` con el texto ISC y copyright 2026 Diego Alexander Gutiérr
 Se reemplazó el historial de diez ramas afectadas, con comprobación de versiones anteriores y respaldo completo. Las ramas descargadas desde GitHub ya no contienen el valor histórico; se detectó por separado una referencia antigua de fusión del PR #4. No se afirma borrado total en la plataforma ni se integra `main`. La copia activa de trabajo es el checkout limpio recién clonado.
 
 Verificación posterior: GitHub regeneró la referencia de fusión del PR #4. La nueva descarga no contiene el valor en las 20 referencias anunciadas ni sus 953 objetos alcanzables. Cachés y copias externas no verificadas; `main` permanece intacta.
+
+## Revisión final previa a integración
+
+Se detectó y reprodujo un defecto RN-02 al publicar con fechas históricas: podía crearse una subasta vencida. El dominio ahora comprueba el cierre contra la hora del servidor; el caso de uso invoca esa regla con reloj controlable para las pruebas. Se agregaron un caso HTTP y dos casos de frontera. También se corrigió formato residual del diff completo. Validación final: 277 pruebas en 46 archivos, sin cambios en la autorización pendiente para integrar `main`.

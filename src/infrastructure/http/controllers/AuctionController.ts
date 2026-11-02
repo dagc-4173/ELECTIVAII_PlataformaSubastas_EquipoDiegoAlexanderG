@@ -92,7 +92,7 @@ export class AuctionController {
       rejectedBidAttemptId: request.body.rejectedBidAttemptId,
       currentDate: now,
     };
-    
+
     const auction = await this.placeBidUseCase.execute(input);
 
     console.log(`Bid accepted for auction: ${auction.id.value}`);

@@ -69,6 +69,15 @@ describe("HTTP input validation and uniform errors", () => {
     expect(list.body.items).toEqual([]);
   });
 
+  it("RN-02 rejects a new auction whose closing date is already past despite historical publication dates", async () => {
+    const response = await request(application.app).post("/auctions").set("Authorization", `Bearer ${token}`)
+      .send({ ...publication(), auctionId: "expired-at-birth", publishedAt: "2026-01-01T00:00:00Z", closesAt: "2026-01-02T00:00:00Z" });
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("BUSINESS_RULE_VIOLATION");
+    const list = await request(application.app).get("/auctions");
+    expect(list.body.items).toEqual([]);
+  });
+
   it("keeps economic rules in domain and returns BUSINESS_RULE_VIOLATION", async () => {
     const response = await request(application.app).post("/auctions").set("Authorization", `Bearer ${token}`)
       .send({ ...publication(), basePrice: 0 });

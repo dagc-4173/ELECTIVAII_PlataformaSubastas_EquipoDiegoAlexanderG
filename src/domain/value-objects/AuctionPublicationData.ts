@@ -71,6 +71,15 @@ export class AuctionPublicationData {
     );
   }
 
+  assertCanBePublishedAt(currentDate: Date): void {
+    if (Number.isNaN(currentDate.getTime())) {
+      throw new BusinessRuleViolationError("Auction publication check date is invalid");
+    }
+    if (this.closesAtValue.getTime() <= currentDate.getTime()) {
+      throw new BusinessRuleViolationError("Auction closing date must be in the future");
+    }
+  }
+
   get basePrice(): Money {
     return this.basePriceValue;
   }

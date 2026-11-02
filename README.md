@@ -533,6 +533,8 @@ Ejemplo de cuerpo (ajustar las fechas al momento de la prueba para mantener la s
 }
 ```
 
+El cierre debe ser posterior también a la hora real del servidor: una combinación de fechas históricas no permite crear una subasta ya vencida (RN-02).
+
 Respuesta exitosa:
 
 ```text

@@ -405,7 +405,7 @@ components:
           example: 3600
     PublishAuctionRequest:
       type: object
-      description: 'Datos necesarios para publicar una subasta. El vendedor se identifica mediante el token JWT.
+      description: 'Datos necesarios para publicar una subasta. El vendedor se identifica mediante el token JWT. El cierre debe ser posterior a la hora real del servidor, además de cumplir la duración y el orden de fechas del dominio.
 
         '
       required:
