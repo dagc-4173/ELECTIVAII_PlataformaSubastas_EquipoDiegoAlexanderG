@@ -28,11 +28,11 @@ El detalle requiere JWT y usuario existente. Se añadieron pruebas HTTP que crea
 
 ## Condiciones de entrega por comprobar
 
-- Completar en README el nombre completo del integrante (no inferirlo del usuario Git) y el equipo; declarar la licencia coherente con `package.json` (actualmente ISC).
+- Identificación académica completada con los datos suministrados por el autor. Queda confirmar la licencia coherente con `package.json` (actualmente ISC).
 - Verificar acceso público al repositorio, ejecución de la rama de entrega y demostración con dos clientes.
 - R-15 toma la versión de `main` antes de la fecha límite. Esta revisión no fusiona con `main`; la integración final requiere una decisión de entrega explícita.
 - R-04 prohíbe claves en el historial. El commit anterior retiró un valor de `JWT_SECRET` del ejemplo actual, pero ello no lo elimina del historial. Confirmar si fue un valor utilizado y sustituirlo en los entornos que lo usen; cualquier reescritura de historial queda fuera de esta revisión.
-- El PDF indica 30/10/2026 para Entrega 2. Confirmar con el docente cualquier prórroga o fecha vigente; no se presupone una extensión.
+- El autor informó el 3 de noviembre de 2026 como fecha de entrega vigente; el PDF consultado conserva la fecha anterior del 30/10/2026.
 
 ## Validación de este avance
 
@@ -69,3 +69,7 @@ Instalación limpia verificada en una copia sin dependencias, `.env` ni base loc
 ## Preparación de candidata
 
 `release/entrega-2` acumula los avances anteriores. Se verificó acceso público del repositorio y ausencia de dependencias de infraestructura en las importaciones de dominio/aplicación revisadas. El secreto de ejemplo del historial no coincide con los `.env` locales revisados; el historial no se reescribió. La guía `delivery-two-handoff.md` recoge el guion de sustentación y las condiciones pendientes. No se declara entrega final ni se integra `main`.
+
+## Datos académicos confirmados por el autor
+
+Integrante y nombre oficial del equipo: **Diego Alexander Gutiérrez Cardona**. Fecha de entrega informada: **3 de noviembre de 2026**. README actualizado. La decisión final sobre licencia permanece pendiente; `package.json` continúa declarando ISC y todavía no se agrega `LICENSE`.

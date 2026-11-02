@@ -11,6 +11,9 @@ La solución implementa una plataforma de subastas en línea siguiendo **Arquite
 - **Asignatura:** Electiva II - Desarrollo
 - **Proyecto:** Plataforma de Subastas en Línea
 - **Modalidad:** Individual
+- **Equipo:** Diego Alexander Gutiérrez Cardona
+- **Integrante:** Diego Alexander Gutiérrez Cardona
+- **Fecha de entrega informada:** 3 de noviembre de 2026
 - **Repositorio:** `ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG`
 - **Entrega actual:** Entrega 2 - API completa y comunicación en tiempo real (en desarrollo)
 - **Entrega 1:** Modelado del dominio y recursos de la API
@@ -1008,7 +1011,7 @@ La última entrega integrará el backend con la aplicación web.
 
 # Autor
 
-Proyecto académico desarrollado para:
+Proyecto académico desarrollado por **Diego Alexander Gutiérrez Cardona** para:
 
 **Electiva II - Desarrollo**  
 **Ingeniería de Software**

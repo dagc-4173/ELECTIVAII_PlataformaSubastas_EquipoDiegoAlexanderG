@@ -2,6 +2,8 @@
 
 Fecha de revisión: 2 de noviembre de 2026. Rama candidata: `release/entrega-2`.
 
+Integrante y equipo confirmados por el autor: **Diego Alexander Gutiérrez Cardona**. Fecha de entrega informada por el autor: **3 de noviembre de 2026**.
+
 Esta rama acumula autenticación, documentación, perfil, consulta de orden, SQLite, WebSockets y validaciones HTTP. No constituye por sí sola la entrega académica ni una integración en `main`. El último cambio de código previo a esta preparación es `5a3aad9`.
 
 ## Estado verificable
@@ -82,9 +84,9 @@ npm run verify:persistence
 
 ## Condiciones que requieren resolución antes de declarar entrega final
 
-- Completar el nombre completo del integrante y confirmar el equipo oficial. No se deducen del usuario Git ni del nombre del repositorio.
+- Identificación académica completada en README con el nombre y equipo suministrados por el autor.
 - Confirmar la licencia ISC declarada y completar el archivo de licencia con el titular correcto; todavía no hay `LICENSE`.
-- Confirmar con el docente la fecha vigente o prórroga. El PDF consultado indica 30/10/2026 para Entrega 2; no se presupone extensión.
+- El autor informó como fecha vigente el 3 de noviembre de 2026. Se conserva esta información como confirmación del autor, frente a la fecha anterior del PDF; no se atribuye una verificación independiente con el docente.
 - Revisar R-04: un valor de `JWT_SECRET` del ejemplo permanece en el historial antiguo. No coincide con los valores de los `.env` locales revisados, pero eso no prueba que nunca se haya usado en otro entorno. No se imprimió ni redistribuyó en este documento. No se reescribió historial.
 - Revisar la adaptación de reconstitución respecto al criterio estricto de no modificar dominio al cambiar persistencia. El núcleo no importa tecnología y los casos de uso/puertos de repositorio permanecieron iguales durante ese cambio; la fábrica añadida está documentada.
 - R-15 toma la versión en `main` antes del límite. Publicar una rama o abrir una propuesta de cambios no cumple por sí solo esa condición. La fusión requiere decisión explícita; esta preparación mantiene `main` intacta.
