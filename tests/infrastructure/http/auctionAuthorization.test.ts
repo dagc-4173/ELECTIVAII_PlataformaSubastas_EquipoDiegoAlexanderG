@@ -290,3 +290,45 @@ describe("RF-07 - HTTP auction cancellation authorization", () => {
     expect(auction?.status.value).toBe("CANCELLED");
   });
 });
+
+describe("RN-23 - HTTP bid history privacy", () => {
+  it("RN-23 should allow a registered observer to read bid history without contact or password data", async () => {
+    const { app, tokenService } = await createFixture();
+    const bid = await request(app)
+      .post("/auctions/auction-001/bids")
+      .set("Authorization", `Bearer ${tokenService.generate("bidder-001")}`)
+      .send({ bidId: "bid-history-001", amount: 100000, rejectedBidAttemptId: "rejected-history-001" });
+    expect(bid.status).toBe(201);
+
+    const response = await request(app)
+      .get("/auctions/auction-001")
+      .set("Authorization", `Bearer ${tokenService.generate("user-002")}`);
+    expect(response.status).toBe(200);
+    expect(response.body.bids).toEqual([{
+      id: "bid-history-001",
+      bidderId: "bidder-001",
+      amount: 100000,
+      placedAt: expect.any(String),
+    }]);
+    const serialized = JSON.stringify(response.body);
+    for (const privateValue of ["@example.com", "test-password-hash", "Test bidder-001"]) {
+      expect(serialized).not.toContain(privateValue);
+    }
+    const assertNoPrivateFields = (value: unknown): void => {
+      if (value === null || typeof value !== "object") return;
+      for (const [key, child] of Object.entries(value)) {
+        expect(key).not.toMatch(/email|phone|contact|password|hash|salt/i);
+        assertNoPrivateFields(child);
+      }
+    };
+    assertNoPrivateFields(response.body);
+  });
+
+  it("RN-23 should reject unauthenticated access to auction detail", async () => {
+    const { app } = await createFixture();
+    const response = await request(app).get("/auctions/auction-001");
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe("AUTHENTICATION_REQUIRED");
+    expect(response.body).not.toHaveProperty("bids");
+  });
+});

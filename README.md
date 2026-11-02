@@ -432,7 +432,7 @@ La API está diseñada alrededor de recursos. La URL base local es `http://local
 
 Las operaciones protegidas requieren `Authorization: Bearer <accessToken>`. El vendedor y el postor se obtienen del JWT; la hora de la puja la fija el servidor. Los identificadores de usuario al registrar, subasta, artículo, categoría, puja e intento rechazado se proporcionan desde el cliente. No se comprueba la existencia de artículos ni categorías.
 
-El listado público usa el mismo mapper que el detalle: incluye `bids` y `rejectedBidAttempts`, con identificadores de postores y sin datos de contacto. La protección del detalle no implica que el historial solo esté disponible mediante esa ruta; RN-23 mantiene pendiente su verificación HTTP integral.
+El listado público usa el mismo mapper que el detalle: incluye `bids` y `rejectedBidAttempts`, con identificadores de postores y sin datos de contacto. La protección del detalle no implica que el historial solo esté disponible mediante esa ruta; RN-23 cuenta con una prueba HTTP integral del detalle; la política del listado público se registra en la revisión académica.
 
 ## Usuarios
 
@@ -696,7 +696,7 @@ La trazabilidad completa de RN-01 a RN-23 se encuentra en:
 docs/business-rules-traceability.md
 ```
 
-RN-22 está implementada y probada. RN-17 es parcial; RN-18 y RN-19 están pendientes. RN-23 mantiene pendiente una prueba HTTP integral específica.
+RN-22 está implementada y probada. RN-17 es parcial; RN-18 y RN-19 están pendientes. RN-23 cuenta con pruebas HTTP del acceso autenticado al detalle y de ausencia de datos privados.
 
 Este documento permite identificar para cada regla:
 
@@ -779,7 +779,7 @@ LoginUserUseCase
 
 ## Infrastructure
 
-Incluye pruebas de ambos repositorios en memoria, `ScryptPasswordHasher`, `JwtTokenService` y pruebas HTTP con Supertest para login, autenticación, autorización y clasificación de errores. La prueba integral específica de privacidad del historial (RN-23) sigue pendiente.
+Incluye pruebas de ambos repositorios en memoria, `ScryptPasswordHasher`, `JwtTokenService` y pruebas HTTP con Supertest para login, autenticación, autorización y clasificación de errores. La prueba integral de RN-23 verifica acceso al detalle por un usuario registrado ajeno a la puja, ausencia de datos privados y rechazo de acceso anónimo al detalle.
 
 Las pruebas están diseñadas para demostrar reglas de negocio y comportamiento funcional, no únicamente para aumentar cobertura.
 
@@ -912,7 +912,7 @@ Actualmente se encuentra implementado:
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real y la verificación integral específica de RN-23. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real el perfil del usuario con sus subastas (RF-03), la consulta de órdenes por el ganador (RF-17) y la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
 
 ---
 
@@ -937,4 +937,4 @@ Proyecto académico desarrollado para:
 
 ## Referencia académica y revisión de fase 2.16
 
-La guía académica original no está incluida en este checkout ni entre los archivos accesibles del chat referenciado. Los estados anteriores se contrastan con el código, las pruebas y OpenAPI; la conformidad completa con la rúbrica queda pendiente de revisar el documento original.
+Se revisaron `Proyecto Subastas Electiva II.pdf` (apartados 5, 6 y 9) y `Guía para la Entrega de Proyectos con GITHUB.pdf`. La persistencia real y WebSockets son obligatorios para la Entrega 2; el webhook es opcional en esta entrega y debe estar terminado en la Entrega 3. Véase [revisión y orden de trabajo](docs/delivery-two-review.md).
