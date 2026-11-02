@@ -1,4 +1,4 @@
-import type {ErrorRequestHandler,
+﻿import type {ErrorRequestHandler,
   NextFunction,
   Request,
   Response,
@@ -72,7 +72,7 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  
+
   if (error instanceof Error) {
     console.error("Unexpected application error:", error);
 

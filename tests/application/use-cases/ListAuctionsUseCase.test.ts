@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 
 import { ListAuctionsUseCase } from "../../../src/application/use-cases/ListAuctionsUseCase.js";
 import { InMemoryAuctionRepository } from "../../../src/infrastructure/persistence/memory/InMemoryAuctionRepository.js";
@@ -183,7 +183,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
     expect(result.totalPages).toBe(0);
   });
 
-  
+
   it("should reject an invalid page number", async () => {
     const repository = new InMemoryAuctionRepository();
     const useCase = new ListAuctionsUseCase(repository);
