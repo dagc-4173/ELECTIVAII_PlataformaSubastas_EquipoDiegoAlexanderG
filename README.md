@@ -912,7 +912,7 @@ Actualmente se encuentra implementado:
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real el perfil del usuario con sus subastas (RF-03), la consulta de órdenes por el ganador (RF-17) y la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real, el perfil del usuario con sus subastas (RF-03), la consulta de órdenes por el ganador (RF-17) y la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
 
 ---
 
