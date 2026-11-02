@@ -40,6 +40,44 @@ paths:
           $ref: '#/components/responses/InvalidCredentials'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /auctions/{auctionId}/payment-order:
+    get:
+      tags:
+      - Auctions
+      summary: Consultar la orden de pago como ganador
+      description: Solo el ganador autenticado puede consultar una orden existente. Esta consulta no cierra subastas, confirma pagos ni expira órdenes; el cierre perezoso ocurre al consultar el detalle o intentar pujar.
+      operationId: getPaymentOrder
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: auctionId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Orden de pago del ganador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOrderResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          description: El usuario autenticado no es el ganador (FORBIDDEN_OPERATION)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Subasta u orden inexistente (RESOURCE_NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /users/me:
     get:
       tags:
@@ -540,6 +578,37 @@ components:
         totalPages:
           type: integer
           example: 3
+    PaymentOrderResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - auctionId
+      - winnerId
+      - amount
+      - status
+      - createdAt
+      - dueAt
+      properties:
+        id:
+          type: string
+        auctionId:
+          type: string
+        winnerId:
+          type: string
+        amount:
+          type: integer
+          minimum: 0
+          description: Monto ganador en pesos colombianos, sin decimales
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, EXPIRED]
+        createdAt:
+          type: string
+          format: date-time
+        dueAt:
+          type: string
+          format: date-time
     UserProfileResponse:
       type: object
       additionalProperties: false

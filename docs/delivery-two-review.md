@@ -14,7 +14,7 @@ Los originales se consultaron en la carpeta local `Electiva II` suministrada por
 | Prioridad | Alcance | Evidencia actual | Trabajo necesario |
 |---|---|---|---|
 | 1 | RF-03: perfil y actividad | Implementado: `GET /users/me`, `GetUserProfileUseCase` y cinco pruebas HTTP con registro/login reales | Completado con repositorios en memoria; verificar también con el futuro adaptador real |
-| 2 | RF-17: consulta de orden por ganador | El dominio genera la orden al cerrar; el mapper no la expone | Consulta autorizada para el ganador, respuestas HTTP, OpenAPI y pruebas |
+| 2 | RF-17: consulta de orden por ganador | Implementado: `GET /auctions/{auctionId}/payment-order`, acceso exclusivo del ganador | Completado con pruebas HTTP y OpenAPI; consulta de solo lectura tras cierre |
 | 3 | Persistencia real, obligatoria en Entrega 2 | Solo repositorios en memoria | Elegir motor justificando ejecución local, implementar adaptadores detrás de los puertos, conservar agregado e historial, verificar reinicios y unicidad |
 | 4 | RF-12–15 y RNF-05: tiempo real | No hay servidor WebSocket ni puerto de eventos | Puerto de salida, eventos después de persistir, suscripción por subasta, nueva puja, aviso al superado y cierre; prueba con dos clientes |
 | 5 | Calidad y documentación | Hay errores uniformes para errores explícitos; no hay validación HTTP general | Validar entradas, revisar errores de JSON y rutas desconocidas, actualizar contratos y probar instalación desde cero |
@@ -40,4 +40,8 @@ TypeScript, compilación y 207 pruebas exitosas (40 archivos), incluidas las dos
 
 ## Avance RF-03
 
-Endpoint `GET /users/me` autenticado; identidad exclusivamente del token. Listas sin duplicados por subasta, participación por pujas aceptadas. Sin paginación ni cierre perezoso en el perfil. Se verificaron 212 pruebas en 41 archivos, TypeScript y compilación. El siguiente pendiente funcional es RF-17.
+Endpoint `GET /users/me` autenticado; identidad exclusivamente del token. Listas sin duplicados por subasta, participación por pujas aceptadas. Sin paginación ni cierre perezoso en el perfil. Se verificaron 212 pruebas en 41 archivos, TypeScript y compilación. RF-17 se completó en el avance siguiente.
+
+## Avance RF-17
+
+La consulta devuelve la orden existente únicamente al ganador identificado por JWT. No genera órdenes ni confirma o expira pagos. El cierre continúa en los casos de uso de detalle y puja. Se verificaron 220 pruebas en 42 archivos, TypeScript y compilación; ocho pruebas nuevas cubren consulta, repetición, plazo, permisos, autenticación y ausencia de orden. El siguiente bloque es persistencia real detrás de los puertos existentes.

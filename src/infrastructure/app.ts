@@ -1,3 +1,6 @@
+import { GetPaymentOrderUseCase } from "../application/use-cases/GetPaymentOrderUseCase.js";
+import { PaymentOrderController } from "./http/controllers/PaymentOrderController.js";
+import { createPaymentOrderRouter } from "./http/routes/paymentOrderRoutes.js";
 import { GetUserProfileUseCase } from "../application/use-cases/GetUserProfileUseCase.js";
 import express from "express";
 
@@ -103,6 +106,14 @@ app.use(
 app.use(
   "/auctions",
   createAuctionRouter(auctionController, authenticate),
+);
+
+app.use(
+  "/auctions",
+  createPaymentOrderRouter(
+    new PaymentOrderController(new GetPaymentOrderUseCase(auctionRepository)),
+    authenticate,
+  ),
 );
 
 app.use(errorHandler);

@@ -162,6 +162,7 @@ CloseAuctionUseCase
 RegisterUserUseCase
 LoginUserUseCase
 GetUserProfileUseCase
+GetPaymentOrderUseCase
 ```
 
 Los casos de uso dependen de interfaces y no de implementaciones concretas.
@@ -431,6 +432,7 @@ La API está diseñada alrededor de recursos. La URL base local es `http://local
 | GET | `/auctions/{auctionId}` | JWT | `200`: detalle e historial |
 | POST | `/auctions/{auctionId}/bids` | JWT | `201`: subasta con la puja aceptada |
 | DELETE | `/auctions/{auctionId}` | JWT del vendedor | `200`: subasta cancelada |
+| GET | `/auctions/{auctionId}/payment-order` | JWT del ganador | `200`: orden de pago |
 
 Las operaciones protegidas requieren `Authorization: Bearer <accessToken>`. El vendedor y el postor se obtienen del JWT; la hora de la puja la fija el servidor. Los identificadores de usuario al registrar, subasta, artículo, categoría, puja e intento rechazado se proporcionan desde el cliente. No se comprueba la existencia de artículos ni categorías.
 
@@ -604,6 +606,21 @@ DELETE /auctions/{auctionId}
 La operación cambia el estado a `CANCELLED`; no elimina el recurso. Devuelve la representación de la subasta y puede ser rechazada por las reglas de negocio.
 
 Por ejemplo, RN-04 impide cancelar una subasta que ya tenga pujas.
+
+---
+
+## Consultar la orden de pago (RF-17)
+
+```http
+GET /auctions/{auctionId}/payment-order
+Authorization: Bearer <accessToken>
+```
+
+Tras el cierre y la adjudicación, el ganador puede consultar `id`, `auctionId`, `winnerId`, `amount` (COP enteros), `status`, `createdAt` y `dueAt`. El plazo de la orden es de 48 horas desde su creación. Su estado inicial es `PENDING`.
+
+La identidad proviene del JWT. Devuelve `401` sin autenticación válida, `403` si existe la orden pero el usuario no es el ganador (incluido el vendedor), y `404` con `RESOURCE_NOT_FOUND` si la subasta o la orden no existen. Las subastas abiertas o desiertas no tienen orden consultable.
+
+Esta ruta solo lee: no ejecuta cierre perezoso, confirmación ni expiración. Para provocar el cierre de una subasta vencida, consultar primero `GET /auctions/{auctionId}`. Las lecturas repetidas conservan la misma orden; los estados `CONFIRMED` y `EXPIRED` están modelados en el dominio, sin procesos HTTP automáticos que los apliquen actualmente.
 
 ---
 
@@ -789,6 +806,7 @@ CloseAuctionUseCase
 RegisterUserUseCase
 LoginUserUseCase
 GetUserProfileUseCase
+GetPaymentOrderUseCase
 ```
 
 ## Infrastructure
@@ -908,7 +926,7 @@ Actualmente se encuentra implementado:
 - reglas principales de publicación y pujas;
 - registro de intentos de puja rechazados;
 - adjudicación;
-- orden de pago dentro del dominio;
+- orden de pago dentro del dominio y consulta protegida para el ganador (RF-17);
 - puertos de persistencia;
 - persistencia en memoria;
 - casos de uso;
@@ -927,7 +945,7 @@ Actualmente se encuentra implementado:
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real, la consulta de órdenes por el ganador (RF-17) y la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real, la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
 
 ---
 
