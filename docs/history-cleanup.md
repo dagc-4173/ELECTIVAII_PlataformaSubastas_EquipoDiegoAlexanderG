@@ -13,7 +13,7 @@ El 2 de noviembre de 2026 el autor autorizó eliminar un valor antiguo de `JWT_S
 
 ## Residuo administrado por GitHub
 
-La primera descarga de verificación posterior todavía encontró el valor a través de `refs/pull/4/merge`, una referencia antigua de fusión del PR #4; su rama de origen ya apuntaba al historial limpio. No se afirma eliminación completa de referencias internas, vistas cacheadas, clones o forks. Este residuo debe verificarse de nuevo y, si persiste, gestionarse con GitHub; no se resuelve publicando sobre `refs/pull/*`, que son referencias administradas por el servicio.
+La primera descarga de verificación posterior todavía encontró el valor a través de `refs/pull/4/merge`, una referencia antigua de fusión del PR #4; su rama de origen ya apuntaba al historial limpio. No se afirma eliminación completa de referencias internas, vistas cacheadas, clones o forks. Después GitHub regeneró la referencia. Una segunda descarga revisó las 20 referencias anunciadas y 953 objetos alcanzables, sin encontrar el valor. El residuo detectado inicialmente dejó de aparecer en esas referencias; no fue necesario publicar sobre `refs/pull/*`. Las vistas cacheadas y otras copias externas siguen fuera de esa comprobación.
 
 El valor histórico no coincidía con los de los dos `.env` locales revisados. Esto no demuestra que nunca se hubiera utilizado en otro entorno. Los respaldos antiguos se conservan fuera del repositorio limpio y no deben publicarse.
 
@@ -27,7 +27,7 @@ No mezclar el historial antiguo con la candidata limpia ni volver a publicarlo. 
 
 ## Estado académico
 
-La corrección aborda el hallazgo R-04 en las ramas publicadas. Mientras subsistan referencias antiguas de la plataforma no se presenta como borrado total de toda copia ni como garantía de conformidad académica completa. Las funcionalidades y la evidencia de desarrollo gradual se conservaron. La integración final en `main` continúa pendiente de autorización independiente.
+La corrección aborda el hallazgo R-04 en las ramas publicadas. La descarga final no encontró el valor en referencias anunciadas de ramas o PR; esto no se presenta como borrado total de toda copia o caché ni como garantía de conformidad académica completa. Las funcionalidades y la evidencia de desarrollo gradual se conservaron. La integración final en `main` continúa pendiente de autorización independiente.
 
 ## Validación del checkout limpio
 
