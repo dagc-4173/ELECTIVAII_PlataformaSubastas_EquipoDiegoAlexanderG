@@ -65,3 +65,7 @@ Se validan formato y campos antes de casos de uso, sin trasladar las reglas de n
 Pendientes de preparación: nombre completo y equipo oficial en README, confirmación de licencia, revisión de R-04 (valor de ejemplo JWT presente en historial antiguo), fecha/prórroga vigente y decisión explícita de integración de la entrega. No se reescribe historial ni se fusiona `main` como parte de este avance. RF-16 y el webhook siguen opcionales para Entrega 2; la expiración de pagos permanece solo en dominio.
 
 Instalación limpia verificada en una copia sin dependencias, `.env` ni base local: `npm ci`, verificación de tipos, compilación y recuperación SQLite entre dos procesos correctos. No se modificaron las reglas del dominio en este avance.
+
+## Preparación de candidata
+
+`release/entrega-2` acumula los avances anteriores. Se verificó acceso público del repositorio y ausencia de dependencias de infraestructura en las importaciones de dominio/aplicación revisadas. El secreto de ejemplo del historial no coincide con los `.env` locales revisados; el historial no se reescribió. La guía `delivery-two-handoff.md` recoge el guion de sustentación y las condiciones pendientes. No se declara entrega final ni se integra `main`.

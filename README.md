@@ -17,6 +17,10 @@ La solución implementa una plataforma de subastas en línea siguiendo **Arquite
 
 ---
 
+## Candidata de Entrega 2
+
+La rama `release/entrega-2` reúne la implementación de backend, SQLite, WebSockets y validaciones revisadas. Véase la [guía de revisión y sustentación](docs/delivery-two-handoff.md), con instalación, evidencias y condiciones académicas pendientes. Publicar esta candidata no implica haber integrado `main` ni haber entregado formalmente al docente.
+
 ## Alcance de la Entrega 1
 
 La primera entrega se concentra en:
