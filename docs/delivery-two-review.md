@@ -17,7 +17,7 @@ Los originales se consultaron en la carpeta local `Electiva II` suministrada por
 | 2 | RF-17: consulta de orden por ganador | Implementado: `GET /auctions/{auctionId}/payment-order`, acceso exclusivo del ganador | Completado con pruebas HTTP y OpenAPI; consulta de solo lectura tras cierre |
 | 3 | Persistencia real, obligatoria en Entrega 2 | Implementada con SQLite local, adaptadores detrás de los puertos y recuperación del agregado completo | Verificada con bases temporales y dos procesos independientes; revisar la fábrica de reconstitución de dominio descrita en `sqlite-persistence.md` |
 | 4 | RF-12–15 y RNF-05: tiempo real | Implementados puerto de salida, adaptador `ws`, autenticación y suscripción por subasta | Verificado con dos clientes reales: difusión, avisos personales, aislamiento, cierre único y fallos de guardado; contrato en `websocket-api.md` |
-| 5 | Calidad y documentación | Hay errores uniformes para errores explícitos; no hay validación HTTP general | Validar entradas, revisar errores de JSON y rutas desconocidas, actualizar contratos y probar instalación desde cero |
+| 5 | Calidad y documentación | Validación HTTP y errores de JSON, tamaño, contenido y rutas desconocidas implementados | Verificados con pruebas reales; completar identificación académica, licencia y revisión de entrega |
 | 6 | RF-18–20 / RN-17–19: webhook | Confirmación solo en dominio | Verificación de origen antes de mutar, registro idempotente y simulador; opcional en Entrega 2, obligatorio para completar Entrega 3 |
 
 El perfil y la consulta de órdenes deben diseñarse antes del adaptador definitivo para que este cubra las consultas reales. No es necesario proveedor de pagos real, nube, colas ni soporte multiproceso. RF-16 (cantidad de participantes) es opcional.
@@ -57,3 +57,11 @@ El siguiente bloque obligatorio es RF-12–15: WebSockets y puerto de salida de 
 RF-12–15 implementados con emisión posterior al guardado y puerto de salida independiente de `ws`. RF-16 sigue opcional. Se agregó cliente de consola para demostración con dos terminales. El siguiente bloque es revisar validaciones HTTP y errores uniformes, documentación de instalación y condiciones académicas pendientes antes de preparar una entrega. No se integra con `main` automáticamente.
 
 Validación del avance: 243 pruebas en 45 archivos, TypeScript, compilación, OpenAPI y recuperación SQLite entre procesos correctos.
+
+## Avance de validación HTTP
+
+Se validan formato y campos antes de casos de uso, sin trasladar las reglas de negocio al middleware. Se normalizan errores de parser (400/413/415), URL y rutas desconocidas. Los tests cubren ausencia de mutaciones ante formato inválido y conservación de códigos de negocio. Resultado: 274 pruebas en 46 archivos, con SQLite y WebSockets incluidos. Contrato de entrada y errores actualizado en README y OpenAPI.
+
+Pendientes de preparación: nombre completo y equipo oficial en README, confirmación de licencia, revisión de R-04 (valor de ejemplo JWT presente en historial antiguo), fecha/prórroga vigente y decisión explícita de integración de la entrega. No se reescribe historial ni se fusiona `main` como parte de este avance. RF-16 y el webhook siguen opcionales para Entrega 2; la expiración de pagos permanece solo en dominio.
+
+Instalación limpia verificada en una copia sin dependencias, `.env` ni base local: `npm ci`, verificación de tipos, compilación y recuperación SQLite entre dos procesos correctos. No se modificaron las reglas del dominio en este avance.

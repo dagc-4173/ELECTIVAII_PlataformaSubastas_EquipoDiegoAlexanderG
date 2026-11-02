@@ -1,3 +1,4 @@
+import { requireJson, validateAuctionParams, validateAuctionQuery, validateAuctionPublication, validateBid } from "../middlewares/validateRequest.js";
 
 
 import { Router } from "express";
@@ -16,12 +17,13 @@ export function createAuctionRouter(
   const router = Router();
 
   // Listado de subastas
-  router.get("/", auctionController.list);
+  router.get("/", validateAuctionQuery, auctionController.list);
 
   // Detalle de una subasta
   router.get<AuctionParams>(
     "/:auctionId",
     authenticate,
+    validateAuctionParams,
     auctionController.getById,
   );
 
@@ -29,6 +31,8 @@ export function createAuctionRouter(
   router.post(
     "/",
     authenticate,
+    requireJson,
+    validateAuctionPublication,
     auctionController.publish,
   );
 
@@ -36,6 +40,9 @@ export function createAuctionRouter(
   router.post<AuctionParams>(
     "/:auctionId/bids",
     authenticate,
+    validateAuctionParams,
+    requireJson,
+    validateBid,
     auctionController.placeBid,
   );
 
@@ -43,6 +50,7 @@ export function createAuctionRouter(
   router.delete<AuctionParams>(
     "/:auctionId",
     authenticate,
+    validateAuctionParams,
     auctionController.cancel,
   );
 

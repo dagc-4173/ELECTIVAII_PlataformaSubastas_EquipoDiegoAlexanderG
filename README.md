@@ -428,7 +428,7 @@ Este comando compila, crea una base temporal, guarda usuarios y una subasta adju
 
 # API REST
 
-La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`.
+La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`. El límite del cuerpo JSON es 100 KiB.
 
 | Método | Ruta | Acceso | Resultado exitoso |
 |---|---|---|---|
@@ -540,7 +540,7 @@ Respuesta exitosa:
 GET /auctions
 ```
 
-Permite filtros y paginación. `page` vale `1` y `pageSize` vale `10` por defecto; ambos deben ser enteros positivos. Los estados del dominio son `OPEN`, `CLOSED`, `CANCELLED`, `DESERTED` y `DEFAULTED`.
+Permite filtros y paginación. `page` vale `1` y `pageSize` vale `10` por defecto; ambos deben enviarse como dígitos decimales de enteros positivos seguros, sin ceros iniciales, valores repetidos, fracciones ni notación exponencial. El desplazamiento de paginación también debe ser un entero seguro. Los estados del dominio son `OPEN`, `CLOSED`, `CANCELLED`, `DESERTED` y `DEFAULTED`.
 
 Parámetros disponibles:
 
@@ -677,18 +677,26 @@ Entre los principales códigos utilizados se encuentran:
 
 | HTTP | Código | Situación |
 |---|---|---|
-| 400 | `INVALID_REQUEST` | Login sin email/contraseña válidos en el cuerpo |
+| 400 | `INVALID_REQUEST` | Campos requeridos, tipos, fechas, identificadores o consulta inválidos |
+| 400 | `INVALID_JSON` | JSON malformado o valor primitivo rechazado por el parser |
 | 400 | `BUSINESS_RULE_VIOLATION` | Regla de negocio incumplida, incluido correo duplicado |
 | 401 | `INVALID_CREDENTIALS` | Credenciales incorrectas |
 | 401 | `AUTHENTICATION_REQUIRED` | Falta encabezado de autenticación |
 | 401 | `INVALID_TOKEN` | Token inválido, vencido o usuario inexistente |
-| 403 | `FORBIDDEN_OPERATION` | Cancelación por otro usuario o puja del vendedor |
+| 403 | `FORBIDDEN_OPERATION` | Cancelación por otro usuario o consulta de orden por alguien distinto del ganador |
 | 404 | `AUCTION_NOT_FOUND` | Detalle inexistente |
-| 404 | `RESOURCE_NOT_FOUND` | Subasta inexistente al pujar o cancelar |
+| 404 | `RESOURCE_NOT_FOUND` | Subasta inexistente al pujar/cancelar o al consultar su orden; orden o usuario inexistente |
+| 404 | `ROUTE_NOT_FOUND` | Ruta u operación HTTP no implementada |
 | 409 | `CONCURRENT_MODIFICATION` | Otra operación guardó la subasta; recargar antes de reintentar |
+| 413 | `PAYLOAD_TOO_LARGE` | Cuerpo JSON mayor de 100 KiB |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | Tipo de contenido, charset o codificación no admitidos |
 | 500 | `INTERNAL_SERVER_ERROR` | Error inesperado |
 
-El formato uniforme corresponde a los errores manejados explícitamente. No hay validación general de cuerpos HTTP ni manejador propio de rutas desconocidas; no se garantiza que toda entrada malformada produzca 400.
+Los middlewares HTTP comprueban objetos JSON, campos requeridos y tipos, fechas ISO reales con segundos y zona (`Z` o desplazamiento), parámetros de ruta y filtros/paginación. Las fechas imposibles, como 30 de febrero, se rechazan. Los campos adicionales que no se consumen se ignoran; en particular, `sellerId`, `bidderId` y `placedAt` no reemplazan la identidad ni la hora del servidor.
+
+Las restricciones económicas siguen en el dominio: por ejemplo, un precio numérico igual a cero devuelve `BUSINESS_RULE_VIOLATION`. Una petición que ni siquiera representa una puja válida por formato se rechaza antes de llegar al dominio y no se registra como intento de puja. Un rechazo por reglas de la subasta conserva su comportamiento de registro.
+
+La autenticación precede a la validación de campos en las rutas protegidas. El parser JSON global corre antes de las rutas: JSON malformado, cuerpos excesivos o codificación inválida pueden devolver 400/413/415 antes de comprobar el token. Los errores inesperados siguen devolviendo `500` sin exponer detalles internos.
 
 ---
 
@@ -978,7 +986,7 @@ Actualmente se encuentra implementado:
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes). WebSockets (RF-12–15) y la persistencia real SQLite ya están implementados. Quedan también la revisión general de validaciones HTTP y la preparación de la entrega. No se declara completa la Entrega 2.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes). WebSockets (RF-12–15) y la persistencia real SQLite ya están implementados. Las validaciones HTTP y los errores uniformes ya están revisados. Falta completar las condiciones académicas y preparar la entrega. No se declara completa la Entrega 2.
 
 ---
 
@@ -1004,3 +1012,7 @@ Proyecto académico desarrollado para:
 ## Referencia académica y revisión de fase 2.16
 
 Se revisaron `Proyecto Subastas Electiva II.pdf` (apartados 5, 6 y 9) y `Guía para la Entrega de Proyectos con GITHUB.pdf`. La persistencia real y WebSockets son obligatorios para la Entrega 2; el webhook es opcional en esta entrega y debe estar terminado en la Entrega 3. Véase [revisión y orden de trabajo](docs/delivery-two-review.md).
+
+## Licencia
+
+`package.json` declara la licencia ISC. La revisión de entrega debe confirmar esta elección y añadir el texto de licencia que corresponda antes de la distribución final.

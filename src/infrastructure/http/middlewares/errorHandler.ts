@@ -17,6 +17,27 @@ export const errorHandler: ErrorRequestHandler = (
   response: Response,
   _next: NextFunction,
 ): void => {
+  if (response.headersSent) { _next(error); return; }
+  if (typeof error === "object" && error !== null && "type" in error) {
+    const parserErrors: Record<string, { status: number; code: string; message: string }> = {
+      "entity.parse.failed": { status: 400, code: "INVALID_JSON", message: "Malformed JSON body" },
+      "entity.too.large": { status: 413, code: "PAYLOAD_TOO_LARGE", message: "JSON body exceeds the 100 KiB limit" },
+      "charset.unsupported": { status: 415, code: "UNSUPPORTED_MEDIA_TYPE", message: "Unsupported JSON charset" },
+      "encoding.unsupported": { status: 415, code: "UNSUPPORTED_MEDIA_TYPE", message: "Unsupported content encoding" },
+      "request.aborted": { status: 400, code: "INVALID_REQUEST", message: "Request body was interrupted" },
+      "request.size.invalid": { status: 400, code: "INVALID_REQUEST", message: "Invalid request body size" },
+    };
+    const type = typeof error.type === "string" ? error.type : "";
+    if (Object.hasOwn(parserErrors, type)) {
+      const failure = parserErrors[type]!;
+      response.status(failure.status).json({ error: { code: failure.code, message: failure.message } });
+      return;
+    }
+  }
+  if (error instanceof URIError) {
+    response.status(400).json({ error: { code: "INVALID_REQUEST", message: "Invalid URL encoding" } });
+    return;
+  }
   if (error instanceof ApiError) {
     response.status(error.statusCode).json({
       error: {

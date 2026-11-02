@@ -1,3 +1,4 @@
+import { requireJson } from "../middlewares/validateRequest.js";
 
 import { Router } from "express";
 
@@ -8,7 +9,7 @@ export function createAuthRouter(
 ): Router {
   const router = Router();
 
-  router.post("/login", authController.login);
+  router.post("/login", requireJson, authController.login);
 
   return router;
 }

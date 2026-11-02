@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Plataforma de Subastas API
   version: 1.0.0
-  description: API REST de la Plataforma de Subastas en Línea de Electiva II - Desarrollo. Documenta las operaciones REST implementadas, autenticación JWT y respuestas HTTP.
+  description: API REST de la Plataforma de Subastas en Línea de Electiva II - Desarrollo. Documenta las operaciones REST implementadas, autenticación JWT y respuestas HTTP. Las rutas desconocidas responden 404 ROUTE_NOT_FOUND. Las fechas de entrada requieren fecha/hora ISO con segundos y zona horaria. El cuerpo JSON tiene un límite de 100 KiB; los campos adicionales no consumidos se ignoran.
 servers:
 - url: http://localhost:3000
   description: Servidor local
@@ -35,9 +35,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         '400':
-          $ref: '#/components/responses/InvalidRequest'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/InvalidCredentials'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /auctions/{auctionId}/payment-order:
@@ -62,6 +66,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/AuthenticationRequired'
         '403':
@@ -124,7 +130,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserResponse'
         '400':
-          $ref: '#/components/responses/BusinessRuleViolation'
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /auctions:
@@ -149,9 +159,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuctionResponse'
         '400':
-          $ref: '#/components/responses/BusinessRuleViolation'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/AuthenticationRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           $ref: '#/components/responses/InternalServerError'
       description: El vendedor se identifica mediante el JWT; sellerId no forma parte del cuerpo de la solicitud.
@@ -203,7 +217,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuctionListResponse'
         '400':
-          $ref: '#/components/responses/BusinessRuleViolation'
+          $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /auctions/{auctionId}:
@@ -231,7 +245,7 @@ paths:
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '400':
-          $ref: '#/components/responses/BusinessRuleViolation'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/AuthenticationRequired'
         '409':
@@ -258,7 +272,7 @@ paths:
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '400':
-          $ref: '#/components/responses/BusinessRuleViolation'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/AuthenticationRequired'
         '403':
@@ -298,11 +312,15 @@ paths:
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '400':
-          $ref: '#/components/responses/BusinessRuleViolation'
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/AuthenticationRequired'
         '409':
           $ref: '#/components/responses/ConcurrentModification'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           $ref: '#/components/responses/InternalServerError'
       description: El postor se obtiene del JWT y la fecha de la puja se genera en el servidor.
@@ -661,6 +679,28 @@ components:
               type: string
               example: Auction with bids cannot be cancelled
   responses:
+    BadRequest:
+      description: Formato inválido (INVALID_REQUEST), JSON malformado o valor primitivo no admitido (INVALID_JSON), o regla del dominio incumplida (BUSINESS_RULE_VIOLATION). Los mensajes no incluyen valores privados de la solicitud.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_REQUEST
+              message: 'Invalid or missing field: amount'
+    PayloadTooLarge:
+      description: El cuerpo JSON supera 100 KiB (PAYLOAD_TOO_LARGE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnsupportedMediaType:
+      description: Content-Type distinto de application/json, charset o codificación no admitidos (UNSUPPORTED_MEDIA_TYPE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     BusinessRuleViolation:
       description: La solicitud viola una regla o validación de la aplicación
       content:

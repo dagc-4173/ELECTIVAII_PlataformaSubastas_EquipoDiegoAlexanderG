@@ -9,7 +9,6 @@ import { AuctionResponseMapper } from "../mappers/AuctionResponseMapper.js";
 
 interface PublishAuctionBody {
   auctionId: string;
-  sellerId: string;
   itemId: string;
   categoryId: string;
   basePrice: number;

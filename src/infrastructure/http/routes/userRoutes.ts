@@ -1,3 +1,4 @@
+import { requireJson, validateUserRegistration } from "../middlewares/validateRequest.js";
 import type { RequestHandler } from "express";
 import { Router } from "express";
 
@@ -11,7 +12,7 @@ export function createUserRouter(
 
   router.get("/me", authenticate, userController.profile);
 
-  router.post("/", userController.register);
+  router.post("/", requireJson, validateUserRegistration, userController.register);
 
   return router;
 }
