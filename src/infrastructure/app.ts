@@ -1,3 +1,4 @@
+import { GetUserProfileUseCase } from "../application/use-cases/GetUserProfileUseCase.js";
 import express from "express";
 
 import { PublishAuctionUseCase } from "../application/use-cases/PublishAuctionUseCase.js";
@@ -53,6 +54,7 @@ const registerUserUseCase = new RegisterUserUseCase(
 
 const userController = new UserController(
   registerUserUseCase,
+  new GetUserProfileUseCase(userRepository, auctionRepository),
 );
 
 const auctionController = new AuctionController(
@@ -95,7 +97,7 @@ app.use("/auth", createAuthRouter(authController));
 
 app.use(
   "/users",
-  createUserRouter(userController),
+  createUserRouter(userController, authenticate),
 );
 
 app.use(

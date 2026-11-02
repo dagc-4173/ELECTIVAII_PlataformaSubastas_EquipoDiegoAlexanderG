@@ -161,6 +161,7 @@ PlaceBidUseCase
 CloseAuctionUseCase
 RegisterUserUseCase
 LoginUserUseCase
+GetUserProfileUseCase
 ```
 
 Los casos de uso dependen de interfaces y no de implementaciones concretas.
@@ -423,6 +424,7 @@ La API está diseñada alrededor de recursos. La URL base local es `http://local
 | Método | Ruta | Acceso | Resultado exitoso |
 |---|---|---|---|
 | POST | `/users` | Público | `201`: usuario registrado |
+| GET | `/users/me` | JWT | `200`: perfil y actividad propia |
 | POST | `/auth/login` | Público | `200`: token JWT |
 | POST | `/auctions` | JWT | `201`: subasta publicada |
 | GET | `/auctions` | Público | `200`: listado paginado |
@@ -462,6 +464,17 @@ Respuesta `201 Created`:
 ```
 
 Un correo ya registrado produce `400` con código `BUSINESS_RULE_VIOLATION` y mensaje `Email is already registered`. El registro no inicia una sesión ni devuelve un token.
+
+### Consultar el perfil propio (RF-03)
+
+```http
+GET /users/me
+Authorization: Bearer <accessToken>
+```
+
+Devuelve `id`, `name`, `email`, `publishedAuctions` y `participatedAuctions`. Las dos listas usan el esquema `AuctionResponse` de OpenAPI. La participación corresponde a tener al menos una puja aceptada; los intentos rechazados por sí solos no cuentan. Cada subasta aparece una sola vez en cada lista. Un usuario puede tener ambas listas con contenido.
+
+La identidad se obtiene exclusivamente del JWT. No se aceptan identificadores para consultar perfiles ajenos, ni se devuelven contraseñas o hashes. Sin token válido devuelve `401`. Un perfil sin actividad devuelve ambas listas vacías. Esta consulta no tiene paginación ni ejecuta cierre perezoso; consultar el detalle de la subasta para actualizar su cierre.
 
 ## Autenticación
 
@@ -775,6 +788,7 @@ PlaceBidUseCase
 CloseAuctionUseCase
 RegisterUserUseCase
 LoginUserUseCase
+GetUserProfileUseCase
 ```
 
 ## Infrastructure
@@ -900,6 +914,7 @@ Actualmente se encuentra implementado:
 - casos de uso;
 - cierre perezoso;
 - registro de usuario con validación de correo único;
+- perfil autenticado con subastas publicadas y participadas (RF-03);
 - filtros por categoría y estado;
 - paginación;
 - API REST de subastas, registro y login de usuarios;
@@ -912,7 +927,7 @@ Actualmente se encuentra implementado:
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real, el perfil del usuario con sus subastas (RF-03), la consulta de órdenes por el ganador (RF-17) y la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real, la consulta de órdenes por el ganador (RF-17) y la persistencia real obligatoria para la Entrega 2. La persistencia sigue siendo en memoria. No se declara completa la Entrega 2.
 
 ---
 

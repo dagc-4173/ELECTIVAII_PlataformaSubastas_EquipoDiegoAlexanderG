@@ -40,6 +40,32 @@ paths:
           $ref: '#/components/responses/InvalidCredentials'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /users/me:
+    get:
+      tags:
+      - Users
+      summary: Consultar el perfil y la actividad del usuario autenticado
+      description: La identidad se obtiene del JWT. Incluye subastas publicadas y subastas con al menos una puja aceptada, una vez por subasta. No pagina ni ejecuta cierre perezoso. No devuelve contraseñas ni hashes.
+      operationId: getUserProfile
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Perfil del usuario autenticado y actividad actual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          description: El usuario dejó de existir después de la autenticación (RESOURCE_NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /users:
     post:
       tags:
@@ -514,6 +540,34 @@ components:
         totalPages:
           type: integer
           example: 3
+    UserProfileResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - email
+      - publishedAuctions
+      - participatedAuctions
+      properties:
+        id:
+          type: string
+          example: seller-001
+        name:
+          type: string
+          example: Diego
+        email:
+          type: string
+          format: email
+          example: diego@example.com
+        publishedAuctions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionResponse'
+        participatedAuctions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionResponse'
     ErrorResponse:
       type: object
       required:

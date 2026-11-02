@@ -13,7 +13,7 @@ Los originales se consultaron en la carpeta local `Electiva II` suministrada por
 
 | Prioridad | Alcance | Evidencia actual | Trabajo necesario |
 |---|---|---|---|
-| 1 | RF-03: perfil y actividad | Solo existen registro y login; no hay ruta de perfil | Caso de uso, consulta de subastas publicadas y participadas, endpoint autenticado y pruebas de aislamiento |
+| 1 | RF-03: perfil y actividad | Implementado: `GET /users/me`, `GetUserProfileUseCase` y cinco pruebas HTTP con registro/login reales | Completado con repositorios en memoria; verificar también con el futuro adaptador real |
 | 2 | RF-17: consulta de orden por ganador | El dominio genera la orden al cerrar; el mapper no la expone | Consulta autorizada para el ganador, respuestas HTTP, OpenAPI y pruebas |
 | 3 | Persistencia real, obligatoria en Entrega 2 | Solo repositorios en memoria | Elegir motor justificando ejecución local, implementar adaptadores detrás de los puertos, conservar agregado e historial, verificar reinicios y unicidad |
 | 4 | RF-12–15 y RNF-05: tiempo real | No hay servidor WebSocket ni puerto de eventos | Puerto de salida, eventos después de persistir, suscripción por subasta, nueva puja, aviso al superado y cierre; prueba con dos clientes |
@@ -37,3 +37,7 @@ El detalle requiere JWT y usuario existente. Se añadieron pruebas HTTP que crea
 ## Validación de este avance
 
 TypeScript, compilación y 207 pruebas exitosas (40 archivos), incluidas las dos nuevas comprobaciones HTTP de RN-23. No se modificó código de producción.
+
+## Avance RF-03
+
+Endpoint `GET /users/me` autenticado; identidad exclusivamente del token. Listas sin duplicados por subasta, participación por pujas aceptadas. Sin paginación ni cierre perezoso en el perfil. Se verificaron 212 pruebas en 41 archivos, TypeScript y compilación. El siguiente pendiente funcional es RF-17.
