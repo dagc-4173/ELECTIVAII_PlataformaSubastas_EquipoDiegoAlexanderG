@@ -4,7 +4,7 @@ Fecha de revisión: 2 de noviembre de 2026. Rama candidata: `release/entrega-2`.
 
 Integrante y equipo confirmados por el autor: **Diego Alexander Gutiérrez Cardona**. Fecha de entrega informada por el autor: **3 de noviembre de 2026**.
 
-Esta rama acumula autenticación, documentación, perfil, consulta de orden, SQLite, WebSockets y validaciones HTTP. No constituye por sí sola la entrega académica ni una integración en `main`. El último cambio de código previo a esta preparación es `5a3aad9`.
+Esta rama acumula autenticación, documentación, perfil, consulta de orden, SQLite, WebSockets y validaciones HTTP. No constituye por sí sola la entrega académica ni una integración en `main`. El último cambio de código previo a esta preparación es `d7d79de`.
 
 ## Estado verificable
 
@@ -87,7 +87,7 @@ npm run verify:persistence
 - Identificación académica completada en README con el nombre y equipo suministrados por el autor.
 - Licencia ISC confirmada por el autor y archivo `LICENSE` añadido con copyright 2026 Diego Alexander Gutiérrez Cardona; coincide con `package.json`.
 - El autor informó como fecha vigente el 3 de noviembre de 2026. Se conserva esta información como confirmación del autor, frente a la fecha anterior del PDF; no se atribuye una verificación independiente con el docente.
-- Revisar R-04: un valor de `JWT_SECRET` del ejemplo permanece en el historial antiguo. No coincide con los valores de los `.env` locales revisados, pero eso no prueba que nunca se haya usado en otro entorno. No se imprimió ni redistribuyó en este documento. No se reescribió historial.
+- R-04: limpieza de las diez ramas afectadas autorizada y aplicada. Se conservan autores, fechas, mensajes y estado final del proyecto; `main` no cambió. La verificación inicial detectó un residuo en la referencia antigua `refs/pull/4/merge`; no se declara borrado total hasta resolverlo. Véase [corrección del historial](history-cleanup.md).
 - Revisar la adaptación de reconstitución respecto al criterio estricto de no modificar dominio al cambiar persistencia. El núcleo no importa tecnología y los casos de uso/puertos de repositorio permanecieron iguales durante ese cambio; la fábrica añadida está documentada.
 - R-15 toma la versión en `main` antes del límite. Publicar una rama o abrir una propuesta de cambios no cumple por sí solo esa condición. La fusión requiere decisión explícita; esta preparación mantiene `main` intacta.
 

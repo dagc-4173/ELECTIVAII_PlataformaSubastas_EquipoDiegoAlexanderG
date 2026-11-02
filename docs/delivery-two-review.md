@@ -31,7 +31,7 @@ El detalle requiere JWT y usuario existente. Se añadieron pruebas HTTP que crea
 - Identificación académica completada con los datos suministrados por el autor. Licencia ISC confirmada y archivo `LICENSE` añadido, coherente con `package.json`.
 - Verificar acceso público al repositorio, ejecución de la rama de entrega y demostración con dos clientes.
 - R-15 toma la versión de `main` antes de la fecha límite. Esta revisión no fusiona con `main`; la integración final requiere una decisión de entrega explícita.
-- R-04 prohíbe claves en el historial. El commit anterior retiró un valor de `JWT_SECRET` del ejemplo actual, pero ello no lo elimina del historial. Confirmar si fue un valor utilizado y sustituirlo en los entornos que lo usen; cualquier reescritura de historial queda fuera de esta revisión.
+- R-04: limpieza autorizada y publicada en diez ramas; `main` intacta. Pendiente comprobar el residuo de la referencia de fusión antigua del PR #4. Detalle en `history-cleanup.md`.
 - El autor informó el 3 de noviembre de 2026 como fecha de entrega vigente; el PDF consultado conserva la fecha anterior del 30/10/2026.
 
 ## Validación de este avance
@@ -77,3 +77,7 @@ Integrante y nombre oficial del equipo: **Diego Alexander Gutiérrez Cardona**. 
 ## Licencia confirmada
 
 Se añadió `LICENSE` con el texto ISC y copyright 2026 Diego Alexander Gutiérrez Cardona, tras confirmación explícita del autor. Se actualizaron README y guía de revisión. Este cambio no modifica código, dependencias ni la validación técnica de 274 pruebas.
+
+## Limpieza de historial autorizada
+
+Se reemplazó el historial de diez ramas afectadas, con comprobación de versiones anteriores y respaldo completo. Las ramas descargadas desde GitHub ya no contienen el valor histórico; se detectó por separado una referencia antigua de fusión del PR #4. No se afirma borrado total en la plataforma ni se integra `main`. La copia activa de trabajo es el checkout limpio recién clonado.
