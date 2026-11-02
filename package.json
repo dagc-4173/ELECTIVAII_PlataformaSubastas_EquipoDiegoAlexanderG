@@ -10,7 +10,8 @@
     "dev:build": "tsc --watch",
     "dev:server": "node --watch dist/server.js",
     "test": "vitest run",
-    "verify:persistence": "npm run build && node scripts/verify-persistence.mjs"
+    "verify:persistence": "npm run build && node scripts/verify-persistence.mjs",
+    "watch:auction": "node scripts/watch-auction.mjs"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.4.0",
     "@types/supertest": "^7.2.1",
+    "@types/ws": "^8.18.2",
     "supertest": "^7.3.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
@@ -36,7 +38,8 @@
   "dependencies": {
     "dotenv": "^18.0.9",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "ws": "^8.22.1"
   },
   "engines": {
     "node": ">=24.15.0 <25"

@@ -4,4 +4,5 @@ import { createApp } from "./createApp.js";
 const application = createApp();
 const app = application.app;
 const closeDatabase = application.close;
-export { app, closeDatabase };
+const realtime = application.realtime;
+export { app, closeDatabase, realtime };

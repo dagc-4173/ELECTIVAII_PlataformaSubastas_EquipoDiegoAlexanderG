@@ -1,3 +1,4 @@
+import { WebSocketAuctionEventPublisher } from "./realtime/WebSocketAuctionEventPublisher.js";
 import { GetPaymentOrderUseCase } from "../application/use-cases/GetPaymentOrderUseCase.js";
 import { PaymentOrderController } from "./http/controllers/PaymentOrderController.js";
 import { createPaymentOrderRouter } from "./http/routes/paymentOrderRoutes.js";
@@ -43,17 +44,18 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const auctionRepository = new SqliteAuctionRepository(database);
   const idGenerator = new RandomIdGenerator();
   const userRepository = new SqliteUserRepository(database);
+  const realtime = new WebSocketAuctionEventPublisher(tokenService, userRepository, auctionRepository);
   const passwordHasher = new ScryptPasswordHasher();
 
   const publishAuctionUseCase = new PublishAuctionUseCase(auctionRepository);
 
-  const getAuctionUseCase = new GetAuctionUseCase(auctionRepository, idGenerator);
+  const getAuctionUseCase = new GetAuctionUseCase(auctionRepository, idGenerator, realtime);
 
   const listAuctionsUseCase = new ListAuctionsUseCase(auctionRepository);
 
   const cancelAuctionUseCase = new CancelAuctionUseCase(auctionRepository);
 
-  const placeBidUseCase = new PlaceBidUseCase(auctionRepository, idGenerator);
+  const placeBidUseCase = new PlaceBidUseCase(auctionRepository, idGenerator, realtime);
 
   const registerUserUseCase = new RegisterUserUseCase(
     userRepository,
@@ -108,5 +110,5 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
 
   app.use(errorHandler);
 
-  return { app, close: () => database.close() };
+  return { app, realtime, close: () => database.close() };
 }

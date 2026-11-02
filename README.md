@@ -183,6 +183,7 @@ La implementación concreta del repositorio pertenece a infraestructura.
 IdGenerator
 PasswordHasher
 TokenService
+AuctionEventPublisher
 ```
 `PasswordHasher` permite que el caso de uso de registro solicite el hash de una contraseña sin depender de una implementación concreta de seguridad.
 
@@ -217,6 +218,8 @@ Responsabilidades:
 
 `JwtTokenService` implementa `TokenService`: firma y verifica JWT HS256, con sujeto de usuario, emisor, audiencia y expiración. El middleware verifica además que el usuario siga registrado.
 
+`AuctionEventPublisher` anuncia pujas aceptadas, superación y cierre después de persistir. `WebSocketAuctionEventPublisher` traduce esos hechos a mensajes WebSocket sin acoplar los casos de uso a `ws`.
+
 ### Persistencia SQLite
 
 El servidor utiliza `SqliteUserRepository` y `SqliteAuctionRepository`, que implementan los puertos existentes. Se guarda el agregado completo de subasta como un documento JSON versionado dentro de una fila SQLite: publicación, estado, pujas, intentos rechazados y orden de pago. Cada guardado es atómico. Los usuarios se almacenan en una tabla con índices únicos para identificador y correo normalizado; la contraseña se conserva solo como hash.
@@ -247,6 +250,7 @@ El backend utiliza:
 
 - Node.js 24.x, versión 24.15.0 o posterior
 - Express.js
+- ws (WebSockets)
 - TypeScript
 - Vitest
 - npm
@@ -688,6 +692,21 @@ El formato uniforme corresponde a los errores manejados explícitamente. No hay 
 
 ---
 
+# Comunicación en tiempo real (RF-12–15)
+
+El servidor expone `ws://localhost:3000/ws` en el mismo puerto de REST. El cliente se autentica con JWT por mensaje, se suscribe a una subasta y recibe pujas aceptadas, avisos personales de superación y cierre/adjudicación. Las pujas siguen viajando por HTTP.
+
+El contrato de mensajes, errores, límites, reconexión y la demostración con dos terminales están en [API WebSocket](docs/websocket-api.md). Para observar una subasta con un token de login:
+
+```powershell
+$env:AUCTION_TOKEN = "token-del-login"
+npm run watch:auction -- auction-001
+```
+
+Los eventos se emiten después de guardar. No tienen replay ni entrega garantizada: al reconectar, volver a suscribirse y consultar el detalle REST. El contador de participantes (RF-16) es opcional y sigue pendiente.
+
+---
+
 # Cierre perezoso de subastas
 
 El proyecto utiliza cierre perezoso.
@@ -771,6 +790,8 @@ Incluye:
 - filtros;
 - paginación;
 - autenticación JWT y requisitos `BearerAuth`.
+
+OpenAPI describe REST. El canal WebSocket se documenta por separado en `docs/websocket-api.md`.
 
 ---
 
@@ -879,6 +900,7 @@ final
 ```text
 .
 ├── docs/
+│   ├── websocket-api.md
 │   ├── business-rules-traceability.md
 │   └── openapi.yaml
 │
@@ -901,6 +923,7 @@ final
 │   │   │   ├── middlewares/
 │   │   │   └── routes/
 │   │   ├── id/
+│   │   ├── realtime/
 │   │   ├── security/
 │   │   ├── createApp.ts
 │   │   ├── app.ts
@@ -946,6 +969,8 @@ Actualmente se encuentra implementado:
 - API REST de subastas, registro y login de usuarios;
 - autenticación JWT y autorización para cancelar y pujar;
 - hash de contraseñas con `scrypt`;
+- WebSockets con suscripciones por subasta y avisos de puja, superación y cierre;
+- puerto de salida de eventos desacoplado de la biblioteca WebSocket;
 - DTOs HTTP;
 - manejo uniforme de errores;
 - configuración de puerto y JWT mediante variables de entorno;
@@ -953,7 +978,7 @@ Actualmente se encuentra implementado:
 - trazabilidad de reglas de negocio;
 - documentación OpenAPI.
 
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes), la comunicación en tiempo real. La persistencia real SQLite ya está implementada. No se declara completa la Entrega 2.
+Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes). WebSockets (RF-12–15) y la persistencia real SQLite ya están implementados. Quedan también la revisión general de validaciones HTTP y la preparación de la entrega. No se declara completa la Entrega 2.
 
 ---
 
