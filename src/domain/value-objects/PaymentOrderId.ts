@@ -1,3 +1,5 @@
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
+
 export class PaymentOrderId {
   private constructor(private readonly id: string) {}
 
@@ -5,7 +7,7 @@ export class PaymentOrderId {
     const value = id.trim();
 
     if (value.length === 0) {
-      throw new Error("Payment order id cannot be empty");
+      throw new BusinessRuleViolationError("Payment order id cannot be empty");
     }
 
     return new PaymentOrderId(value);

@@ -3,6 +3,7 @@ import { User } from "../../domain/entities/User.js";
 import { Email } from "../../domain/value-objects/Email.js";
 import { UserId } from "../../domain/value-objects/UserId.js";
 import type { PasswordHasher } from "../ports/PasswordHasher.js";
+import { BusinessRuleViolationError } from "../../domain/errors/BusinessRuleViolationError.js";
 
 export interface RegisterUserInput {
   userId: string;
@@ -24,13 +25,13 @@ export class RegisterUserUseCase {
     const existingUserById = await this.userRepository.findById(userId);
 
     if (existingUserById !== null) {
-      throw new Error("User ID is already registered");
+      throw new BusinessRuleViolationError("User ID is already registered");
     }
 
     const existingUserByEmail = await this.userRepository.findByEmail(email);
 
     if (existingUserByEmail !== null) {
-      throw new Error("Email is already registered");
+      throw new BusinessRuleViolationError("Email is already registered");
     }
 
     const passwordHash = await this.passwordHasher.hash(input.password);

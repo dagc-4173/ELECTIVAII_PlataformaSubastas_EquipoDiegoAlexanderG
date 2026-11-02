@@ -4,6 +4,7 @@ import { PublishAuctionUseCase } from "../../../src/application/use-cases/Publis
 import type { AuctionRepository } from "../../../src/domain/ports/AuctionRepository.js";
 import { Auction } from "../../../src/domain/entities/Auction.js";
 import { AuctionId } from "../../../src/domain/value-objects/AuctionId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 class FakeAuctionRepository implements AuctionRepository {
   private readonly auctions: Auction[] = [];
@@ -69,7 +70,7 @@ describe("PublishAuctionUseCase", () => {
         ...input,
         sellerId: "seller-002",
       }),
-    ).rejects.toThrow("Auction ID is already registered");
+    ).rejects.toThrow(BusinessRuleViolationError);
 
     const auctions = await repository.findAll();
 

@@ -6,6 +6,7 @@ import { CategoryId } from "../../domain/value-objects/CategoryId.js";
 import { ItemId } from "../../domain/value-objects/ItemId.js";
 import { Money } from "../../domain/value-objects/Money.js";
 import { UserId } from "../../domain/value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../../domain/errors/BusinessRuleViolationError.js";
 
 export interface PublishAuctionInput {
   auctionId: string;
@@ -27,7 +28,7 @@ export class PublishAuctionUseCase {
     const existingAuction = await this.auctionRepository.findById(auctionId);
 
     if (existingAuction !== null) {
-      throw new Error("Auction ID is already registered");
+      throw new BusinessRuleViolationError("Auction ID is already registered");
     }
 
     const publicationData = AuctionPublicationData.create(

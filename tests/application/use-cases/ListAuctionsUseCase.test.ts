@@ -9,7 +9,7 @@ import { CategoryId } from "../../../src/domain/value-objects/CategoryId.js";
 import { ItemId } from "../../../src/domain/value-objects/ItemId.js";
 import { Money } from "../../../src/domain/value-objects/Money.js";
 import { UserId } from "../../../src/domain/value-objects/UserId.js";
-
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 function createAuction(
   id: string,
@@ -183,6 +183,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
     expect(result.totalPages).toBe(0);
   });
 
+  
   it("should reject an invalid page number", async () => {
     const repository = new InMemoryAuctionRepository();
     const useCase = new ListAuctionsUseCase(repository);
@@ -192,7 +193,7 @@ describe("ListAuctionsUseCase - RF-05", () => {
         page: 0,
         pageSize: 10,
       }),
-    ).rejects.toThrow("Page must be a positive integer");
+    ).rejects.toThrow(BusinessRuleViolationError);
   });
 
   it("should reject an invalid page size", async () => {
@@ -204,6 +205,6 @@ describe("ListAuctionsUseCase - RF-05", () => {
         page: 1,
         pageSize: 0,
       }),
-    ).rejects.toThrow("Page size must be a positive integer");
+    ).rejects.toThrow(BusinessRuleViolationError);
   });
 });

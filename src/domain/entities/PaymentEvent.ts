@@ -1,5 +1,6 @@
 import { PaymentEventId } from "../value-objects/PaymentEventId.js";
 import { PaymentOrderId } from "../value-objects/PaymentOrderId.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export type PaymentEventResult = "SUCCESS" | "FAILED";
 
@@ -18,7 +19,7 @@ export class PaymentEvent {
     occurredAt: Date,
   ): PaymentEvent {
     if (Number.isNaN(occurredAt.getTime())) {
-      throw new Error("Payment event date is invalid");
+      throw new BusinessRuleViolationError("Payment event date is invalid");
     }
 
     return new PaymentEvent(

@@ -1,6 +1,7 @@
 import { BidId } from "../value-objects/BidId.js";
 import { Money } from "../value-objects/Money.js";
 import { UserId } from "../value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class Bid {
   private constructor(
@@ -17,7 +18,7 @@ export class Bid {
     placedAt: Date,
   ): Bid {
     if (Number.isNaN(placedAt.getTime())) {
-      throw new Error("Bid placement date is invalid");
+      throw new BusinessRuleViolationError("Bid placement date is invalid");
     }
 
     return new Bid(id, bidderId, amount, new Date(placedAt));

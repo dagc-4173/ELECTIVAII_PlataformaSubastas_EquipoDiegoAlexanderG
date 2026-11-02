@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PaymentEvent } from "../../../src/domain/entities/PaymentEvent.js";
 import { PaymentEventId } from "../../../src/domain/value-objects/PaymentEventId.js";
 import { PaymentOrderId } from "../../../src/domain/value-objects/PaymentOrderId.js";
+import { BusinessRuleViolationError } from "../../../src/domain/errors/BusinessRuleViolationError.js";
 
 describe("PaymentEvent", () => {
   it("should create a payment event with valid data", () => {
@@ -40,7 +41,7 @@ describe("PaymentEvent", () => {
         "SUCCESS",
         new Date("invalid-date"),
       ),
-    ).toThrow("Payment event date is invalid");
+    ).toThrow(BusinessRuleViolationError);
   });
 
   it("should protect the internal event date from external mutation", () => {

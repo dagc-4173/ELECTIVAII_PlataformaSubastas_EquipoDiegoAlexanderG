@@ -1,3 +1,5 @@
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
+
 export class Email {
   private constructor(private readonly address: string) {}
 
@@ -5,13 +7,15 @@ export class Email {
     const normalizedAddress = address.trim().toLowerCase();
 
     if (normalizedAddress.length === 0) {
-      throw new Error("Email address cannot be empty");
+      throw new BusinessRuleViolationError(
+        "Email address cannot be empty",
+      );
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailPattern.test(normalizedAddress)) {
-      throw new Error("Email address is invalid");
+      throw new BusinessRuleViolationError("Email address is invalid",);
     }
 
     return new Email(normalizedAddress);

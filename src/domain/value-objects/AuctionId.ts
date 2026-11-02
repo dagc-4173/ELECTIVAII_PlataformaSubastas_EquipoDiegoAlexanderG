@@ -1,3 +1,5 @@
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
+
 export class AuctionId {
   private constructor(private readonly id: string) {}
 
@@ -5,7 +7,7 @@ export class AuctionId {
     const value = id.trim();
 
     if (value.length === 0) {
-      throw new Error("Auction id cannot be empty");
+      throw new BusinessRuleViolationError("Auction id cannot be empty");
     }
 
     return new AuctionId(value);

@@ -1,5 +1,4 @@
-import type {
-  ErrorRequestHandler,
+import type {ErrorRequestHandler,
   NextFunction,
   Request,
   Response,
@@ -9,6 +8,7 @@ import { ApiError } from "../errors/ApiError.js";
 import { NotFoundError } from "../../../application/errors/NotFoundError.js";
 import { InvalidCredentialsError } from "../../../application/errors/InvalidCredentialsError.js";
 import { ForbiddenOperationError } from "../../../domain/errors/ForbiddenOperationError.js";
+import { BusinessRuleViolationError } from "../../../domain/errors/BusinessRuleViolationError.js";
 
 
 export const errorHandler: ErrorRequestHandler = (
@@ -61,13 +61,25 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  if (error instanceof Error) {
-    console.error("Application error:", error);
-
+  if (error instanceof BusinessRuleViolationError) {
     response.status(400).json({
       error: {
         code: "BUSINESS_RULE_VIOLATION",
         message: error.message,
+      },
+    });
+
+    return;
+  }
+
+  
+  if (error instanceof Error) {
+    console.error("Unexpected application error:", error);
+
+    response.status(500).json({
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Unexpected server error",
       },
     });
 

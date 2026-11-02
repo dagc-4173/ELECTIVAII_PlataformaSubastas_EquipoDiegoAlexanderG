@@ -1,4 +1,5 @@
 import { ItemId } from "../value-objects/ItemId.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class Item {
   private constructor(
@@ -19,15 +20,15 @@ export class Item {
     const normalizedCondition = condition.trim();
 
     if (normalizedName.length === 0) {
-      throw new Error("Item name cannot be empty");
+      throw new BusinessRuleViolationError("Item name cannot be empty");
     }
 
     if (normalizedDescription.length === 0) {
-      throw new Error("Item description cannot be empty");
+      throw new BusinessRuleViolationError("Item description cannot be empty");
     }
 
     if (normalizedCondition.length === 0) {
-      throw new Error("Item condition cannot be empty");
+      throw new BusinessRuleViolationError("Item condition cannot be empty");
     }
 
     return new Item(

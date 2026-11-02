@@ -1,5 +1,6 @@
 import { NotificationId } from "../value-objects/NotificationId.js";
 import { UserId } from "../value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class Notification {
   private constructor(
@@ -18,11 +19,11 @@ export class Notification {
     const normalizedMessage = message.trim();
 
     if (normalizedMessage.length === 0) {
-      throw new Error("Notification message cannot be empty");
+      throw new BusinessRuleViolationError("Notification message cannot be empty");
     }
 
     if (Number.isNaN(createdAt.getTime())) {
-      throw new Error("Notification creation date is invalid");
+      throw new BusinessRuleViolationError("Notification creation date is invalid");
     }
 
     return new Notification(

@@ -1,4 +1,5 @@
 import { Money } from "./Money.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class AuctionPublicationData {
   private constructor(
@@ -15,23 +16,33 @@ export class AuctionPublicationData {
     closesAt: Date,
   ): AuctionPublicationData {
     if (basePrice.value <= 0) {
-      throw new Error("Auction base price must be greater than zero");
+      throw new BusinessRuleViolationError(
+        "Auction base price must be greater than zero",
+      );
     }
 
     if (minimumIncrement.value <= 0) {
-      throw new Error("Auction minimum increment must be greater than zero");
+      throw new BusinessRuleViolationError(
+        "Auction minimum increment must be greater than zero",
+      );
     }
 
     if (Number.isNaN(publishedAt.getTime())) {
-      throw new Error("Auction publication date is invalid");
+      throw new BusinessRuleViolationError(
+        "Auction publication date is invalid",
+      );
     }
 
     if (Number.isNaN(closesAt.getTime())) {
-      throw new Error("Auction closing date is invalid");
+      throw new BusinessRuleViolationError(
+        "Auction closing date is invalid",
+      );
     }
 
     if (closesAt.getTime() <= publishedAt.getTime()) {
-      throw new Error("Auction closing date must be after publication date");
+      throw new BusinessRuleViolationError(
+        "Auction closing date must be after publication date",
+      );
     }
 
     const durationInMilliseconds =
@@ -41,11 +52,15 @@ export class AuctionPublicationData {
     const thirtyDaysInMilliseconds = 30 * 24 * 60 * 60 * 1000;
 
     if (durationInMilliseconds < oneHourInMilliseconds) {
-      throw new Error("Auction duration must be at least one hour");
+      throw new BusinessRuleViolationError(
+        "Auction duration must be at least one hour",
+      );
     }
 
     if (durationInMilliseconds > thirtyDaysInMilliseconds) {
-      throw new Error("Auction duration cannot exceed thirty days");
+      throw new BusinessRuleViolationError(
+        "Auction duration cannot exceed thirty days",
+      );
     }
 
     return new AuctionPublicationData(

@@ -1,5 +1,6 @@
 import { Email } from "../value-objects/Email.js";
 import { UserId } from "../value-objects/UserId.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class User {
   private constructor(
@@ -19,11 +20,11 @@ export class User {
     const normalizedPasswordHash = passwordHash.trim();
 
     if (normalizedName.length === 0) {
-      throw new Error("User name cannot be empty");
+      throw new BusinessRuleViolationError("User name cannot be empty");
     }
 
     if (normalizedPasswordHash.length === 0) {
-      throw new Error("Password hash cannot be empty");
+      throw new BusinessRuleViolationError("Password hash cannot be empty");
     }
 
     return new User(

@@ -10,6 +10,7 @@ import { RejectedBidAttemptId } from "../value-objects/RejectedBidAttemptId.js";
 import { PaymentOrder } from "./PaymentOrder.js";
 import { PaymentOrderId } from "../value-objects/PaymentOrderId.js";
 import { ForbiddenOperationError } from "../errors/ForbiddenOperationError.js";
+import { BusinessRuleViolationError } from "../errors/BusinessRuleViolationError.js";
 
 export class Auction {
   private constructor(
@@ -59,7 +60,7 @@ export class Auction {
 
     this.rejectedBidAttempts.push(rejectedAttempt);
 
-    throw new Error(reason);
+    throw new BusinessRuleViolationError(reason);
   }
 
   
@@ -71,13 +72,13 @@ export class Auction {
     }
 
     if (!this.statusValue.equals(AuctionStatus.open())) {
-      throw new Error(
+      throw new BusinessRuleViolationError(
         "Only open auctions can be cancelled",
       );
     }
 
     if (this.bids.length > 0) {
-      throw new Error(
+      throw new BusinessRuleViolationError(
         "Auction with bids cannot be cancelled",
       );
     }
@@ -154,15 +155,15 @@ export class Auction {
 
   close(closedAt: Date, paymentOrderId?: PaymentOrderId): void {
     if (Number.isNaN(closedAt.getTime())) {
-      throw new Error("Auction closing date is invalid");
+      throw new BusinessRuleViolationError("Auction closing date is invalid");
     }
 
     if (!this.statusValue.equals(AuctionStatus.open())) {
-      throw new Error("Auction can only be closed once");
+      throw new BusinessRuleViolationError("Auction can only be closed once");
     }
 
     if (closedAt.getTime() < this.publicationData.closesAt.getTime()) {
-      throw new Error("Auction cannot close before its scheduled closing date");
+      throw new BusinessRuleViolationError("Auction cannot close before its scheduled closing date");
     }
 
     if (this.bids.length === 0) {
@@ -194,7 +195,7 @@ export class Auction {
 
   expirePayment(currentDate: Date): void {
     if (this.paymentOrderValue === undefined) {
-      throw new Error("Auction does not have a payment order");
+      throw new BusinessRuleViolationError("Auction does not have a payment order");
     }
 
     this.paymentOrderValue.expire(currentDate);
