@@ -15,14 +15,33 @@ La solución implementa una plataforma de subastas en línea siguiendo **Arquite
 - **Integrante:** Diego Alexander Gutiérrez Cardona
 - **Fecha de entrega informada:** 3 de noviembre de 2026
 - **Repositorio:** `ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG`
-- **Entrega actual:** Entrega 2 - API completa y comunicación en tiempo real (en desarrollo)
+- **Entrega actual:** Entrega 2 - API REST, persistencia SQLite y comunicación en tiempo real (implementada e integrada en main)
 - **Entrega 1:** Modelado del dominio y recursos de la API
 
 ---
 
-## Candidata de Entrega 2
+## Estado de la Entrega 2
 
-La rama `release/entrega-2` reúne la implementación de backend, SQLite, WebSockets y validaciones revisadas. Véase la [guía de revisión y sustentación](docs/delivery-two-handoff.md), con instalación, evidencias y condiciones académicas pendientes. Publicar esta candidata no implica haber integrado `main` ni haber entregado formalmente al docente. La [corrección del historial](docs/history-cleanup.md) documenta la limpieza autorizada y sus límites.
+La Entrega 2 se encuentra implementada e integrada en la rama principal `main`.
+
+La integración se realizó mediante:
+
+- Pull Request #4: integración de la API REST, autenticación JWT, persistencia SQLite y comunicación en tiempo real mediante WebSockets.
+- Pull Request #5: corrección de la especificación OpenAPI y metadatos de licencia ISC.
+
+### Validaciones realizadas
+
+- 277 pruebas automatizadas aprobadas en 46 archivos.
+- Verificación de tipos de TypeScript sin errores.
+- Compilación correcta.
+- Persistencia SQLite verificada entre dos procesos independientes.
+- Autenticación JWT y suscripción WebSocket comprobadas.
+- Publicación, aceptación y rechazo de pujas comprobados mediante REST.
+- Cierre de subastas, adjudicación y consulta protegida de órdenes de pago verificados.
+
+La integración técnica está finalizada. La entrega formal al docente y su aceptación académica son procesos independientes.
+
+Para reproducir las verificaciones y preparar la sustentación, consultar [la guía de revisión y sustentación](docs/delivery-two-handoff.md).
 
 ## Alcance de la Entrega 1
 

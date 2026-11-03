@@ -1,5 +1,34 @@
 # Entrega 2: revisión y sustentación
 
+## Estado final de integración — 3 de noviembre de 2026
+
+La Entrega 2 se integró correctamente en la rama principal `main`.
+
+### Integraciones realizadas
+
+- Pull Request #4: integración de la implementación de la Entrega 2.
+- Pull Request #5: corrección documental de OpenAPI.
+- Commit de integración documental: `98d0ea7`.
+
+### Validación técnica
+
+- 277 pruebas aprobadas en 46 archivos.
+- Verificación TypeScript correcta.
+- Compilación correcta.
+- Persistencia SQLite verificada entre dos procesos.
+- Autenticación y suscripción WebSocket verificadas.
+- Aceptación y rechazo de pujas comprobados mediante REST.
+- Cierre, adjudicación y órdenes de pago comprobados.
+- Restricción de acceso a órdenes de pago verificada mediante HTTP 403.
+
+### Estado académico
+
+La implementación y la integración técnica se encuentran finalizadas.
+
+La entrega formal al docente y su aceptación deben confirmarse por separado.
+
+Las referencias posteriores a una rama candidata, integración pendiente o preparación previa al merge corresponden al estado histórico de la revisión realizada antes de fusionar la Entrega 2.
+
 Fecha de revisión: 2 de noviembre de 2026. Rama candidata: `release/entrega-2`.
 
 Integrante y equipo confirmados por el autor: **Diego Alexander Gutiérrez Cardona**. Fecha de entrega informada por el autor: **3 de noviembre de 2026**.
