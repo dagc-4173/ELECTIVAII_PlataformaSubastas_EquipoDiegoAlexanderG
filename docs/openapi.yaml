@@ -14,6 +14,54 @@ tags:
 - name: Users
   description: Operaciones relacionadas con usuarios
 paths:
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Procesar una notificación firmada de pago
+      operationId: processPaymentWebhook
+      parameters:
+      - name: X-Payment-Signature
+        in: header
+        required: true
+        description: HMAC-SHA256 hexadecimal del cuerpo JSON exacto, con el secreto compartido.
+        schema: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventId, paymentOrderId, result, occurredAt]
+              properties:
+                eventId: {type: string}
+                paymentOrderId: {type: string}
+                result: {type: string, enum: [SUCCESS, FAILED]}
+                occurredAt: {type: string, format: date-time}
+      responses:
+        '200':
+          description: Resultado registrado. Un reenvío del mismo evento devuelve la respuesta original.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [eventId, outcome]
+                properties:
+                  eventId: {type: string}
+                  outcome: {type: string, enum: [CONFIRMED, FAILED, EXPIRED, ALREADY_CONFIRMED]}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Firma inválida
+        '404':
+          description: Orden inexistente
+        '409':
+          description: El identificador del evento ya está asociado a otros datos
+        '413':
+          description: Cuerpo mayor de 16 KiB
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '503':
+          description: El webhook carece de un secreto configurado
   /auth/password-reset/request:
     post:
       tags: [Auth]

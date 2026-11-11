@@ -8,6 +8,9 @@ import { fileURLToPath } from "node:url";
 
 import { PublishAuctionUseCase } from "../application/use-cases/PublishAuctionUseCase.js";
 import { EditAuctionUseCase } from "../application/use-cases/EditAuctionUseCase.js";
+import { ProcessPaymentEventUseCase } from "../application/use-cases/ProcessPaymentEventUseCase.js";
+import { SqlitePaymentEventStore } from "./persistence/sqlite/SqlitePaymentEventStore.js";
+import { createPaymentWebhookRouter } from "./http/routes/paymentWebhookRoutes.js";
 import { GetAuctionUseCase } from "../application/use-cases/GetAuctionUseCase.js";
 import { ListAuctionsUseCase } from "../application/use-cases/ListAuctionsUseCase.js";
 import { CancelAuctionUseCase } from "../application/use-cases/CancelAuctionUseCase.js";
@@ -42,6 +45,10 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const database = openDatabase(databasePath);
   const app = express();
 
+  app.use("/payments", createPaymentWebhookRouter(
+    new ProcessPaymentEventUseCase(new SqlitePaymentEventStore(database)),
+    process.env.PAYMENT_WEBHOOK_SECRET,
+  ));
   const json = express.json({ limit: "100kb" });
   const publicationJson = express.json({ limit: "3mb" });
   app.use((request, response, next) => {

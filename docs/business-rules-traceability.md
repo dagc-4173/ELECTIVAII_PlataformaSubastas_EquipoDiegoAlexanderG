@@ -30,9 +30,9 @@ La finalidad de esta matriz es facilitar la revisión técnica y la sustentació
 | RN-14 | Una subasta cerrada sin pujas queda desierta y no genera orden de pago. | Implementada | `src/domain/entities/Auction.ts` | `Auction.close()` | `RN-14 should mark an auction without bids as deserted` |
 | RN-15 | Al adjudicar una subasta se crea una orden de pago para el ganador, por el monto ganador y con vencimiento a 48 horas. | Implementada en dominio | `src/domain/entities/Auction.ts`, `src/domain/entities/PaymentOrder.ts` | `Auction.close()`, `PaymentOrder.create()` | `RN-15 should generate a payment order for the winning bid with a 48-hour deadline`; `should create a payment order for the winner and winning amount`; `should set the payment deadline to 48 hours after creation` |
 | RN-16 | Una subasta solo puede cerrarse una vez. | Implementada | `src/domain/entities/Auction.ts` | `Auction.close()` | `RN-16 should reject closing the same auction more than once` |
-| RN-17 | Una notificación externa únicamente puede confirmar el pago. | Parcial | `src/domain/entities/PaymentOrder.ts` | `PaymentOrder.confirm()` | `RN-17 should confirm a pending payment order`; `RN-17 should reject confirming a payment order more than once` |
-| RN-18 | Una notificación de pago que no pueda verificarse debe rechazarse y no modificar el estado. | Pendiente | — | Requiere procesamiento/verificación de notificación externa | — |
-| RN-19 | El procesamiento de eventos de pago debe ser idempotente. | Pendiente | — | Requiere caso de uso de procesamiento de `PaymentEvent` | — |
+| RN-17 | Una notificación externa únicamente puede confirmar el pago. | Implementada | `ProcessPaymentEventUseCase.ts` | Confirma la orden pendiente ante un resultado exitoso y firmado, dentro del plazo. | `paymentWebhook.test.ts` |
+| RN-18 | Una notificación de pago que no pueda verificarse debe rechazarse y no modificar el estado. | Implementada | `paymentWebhookRoutes.ts` | Verifica HMAC-SHA256 del cuerpo antes del procesamiento. | `paymentWebhook.test.ts` |
+| RN-19 | El procesamiento de eventos de pago debe ser idempotente. | Implementada | `SqlitePaymentEventStore.ts` | Guarda el resultado del evento y el cambio de orden en la misma transacción. | `paymentWebhook.test.ts` |
 | RN-20 | Una orden de pago vencida y no confirmada debe quedar expirada y la subasta debe pasar a incumplida. | Implementada en dominio | `src/domain/entities/PaymentOrder.ts`, `src/domain/entities/Auction.ts` | `PaymentOrder.expire()`, `Auction.expirePayment()` | `RN-20 should expire a pending payment order at its due date`; `RN-20 should reject expiration before the payment deadline`; `RN-20 should reject expiration of a confirmed payment order`; `RN-20 should expire the payment order and mark the auction as defaulted` |
 | RN-21 | Los valores monetarios se manejan como enteros, sin decimales y sin valores negativos. | Implementada | `src/domain/value-objects/Money.ts` | `Money.create()` | `should create money with a non-negative integer amount`; `should reject negative amounts`; `should reject decimal amounts` |
 | RN-22 | El correo electrónico de un usuario debe ser único dentro de la plataforma. | Implementada | `src/application/use-cases/RegisterUserUseCase.ts`, `src/infrastructure/persistence/memory/InMemoryUserRepository.ts`, `src/infrastructure/persistence/sqlite/SqliteUserRepository.ts` | `RegisterUserUseCase.execute()`, `UserRepository.findByEmail()` | `RN-22 should reject registering a second user with the same email`; `RN-22 should preserve the original user when a duplicate email is rejected` |
@@ -44,9 +44,7 @@ La finalidad de esta matriz es facilitar la revisión técnica y la sustentació
 
 Estas reglas corresponden a la confirmación de pagos, la verificación de notificaciones externas y el procesamiento idempotente de eventos de pago.
 
-RN-17 dispone de comportamiento de confirmación modelado en el dominio, pero aún requiere la integración con el procesamiento externo de pagos.
-
-RN-18 y RN-19 permanecen pendientes de implementación.
+El simulador local reenvía la misma notificación firmada para demostrar que el webhook conserva el resultado original. Una notificación recibida a partir del vencimiento hace efectiva RN-20 en el webhook; la expiración en ausencia de notificaciones sigue pendiente.
 
 ### RN-23
 

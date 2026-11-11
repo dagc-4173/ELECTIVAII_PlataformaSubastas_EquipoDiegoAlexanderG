@@ -42,6 +42,16 @@ En el listado, elegir **Publicar subasta** y completar el artículo, la categor�
 
 Si la API rechaza una puja, el detalle muestra el motivo junto al campo de oferta. Los errores de monto conservan lo que se escribió y devuelven el foco al campo para poder corregirlo.
 
+### Demostración de confirmación del pago
+
+Configurar `PAYMENT_WEBHOOK_SECRET` en `.env` con un valor aleatorio de al menos 32 caracteres y reiniciar el servidor. Después del cierre, consultar la orden con el token del ganador en `GET /auctions/{auctionId}/payment-order`. Ejecutar desde el repositorio:
+
+```powershell
+node scripts/simulate-payment.mjs <id-de-la-orden> SUCCESS
+```
+
+El simulador firma el cuerpo JSON con HMAC-SHA256 y lo envía dos veces a `POST /payments/webhook`. Las dos respuestas deben ser idénticas. Una nueva consulta del ganador muestra la orden en `CONFIRMED`. Usar `FAILED` para simular un fallo que deja la orden pendiente antes del vencimiento. El simulador sirve para la demostración local del flujo.
+
 Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
 
 En el detalle, el vendedor puede elegir **Editar publicación** mientras la subasta siga abierta y sin pujas. Puede corregir el artículo y la categoría, y seleccionar una foto nueva para reemplazar la actual.

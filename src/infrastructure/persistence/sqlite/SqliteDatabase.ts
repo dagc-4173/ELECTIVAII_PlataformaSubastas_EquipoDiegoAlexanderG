@@ -9,7 +9,7 @@ export function openDatabase(path: string): DatabaseSync {
   try {
     db.exec("PRAGMA foreign_keys = ON; BEGIN IMMEDIATE");
     const version = db.prepare("PRAGMA user_version").get()?.user_version;
-    if (version !== 0 && version !== 1 && version !== 2 && version !== 3) {
+    if (typeof version !== "number" || !Number.isInteger(version) || version < 0 || version > 4) {
       throw new Error("Unsupported database schema version");
     }
     if (version === 0) {
@@ -30,13 +30,22 @@ export function openDatabase(path: string): DatabaseSync {
         ALTER TABLE auctions ADD COLUMN photo_bytes BLOB;
         PRAGMA user_version = 2;`);
     }
-    if (version !== 3) {
+    if (version < 3) {
       db.exec(`CREATE TABLE password_resets (
           user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
           token_hash TEXT NOT NULL UNIQUE,
           expires_at INTEGER NOT NULL
         );
         PRAGMA user_version = 3;`);
+    }
+    if (version < 4) {
+      db.exec(`CREATE TABLE payment_events (
+          id TEXT PRIMARY KEY NOT NULL,
+          fingerprint TEXT NOT NULL,
+          outcome TEXT NOT NULL
+        );
+        CREATE INDEX auction_payment_order ON auctions(json_extract(document, '$.paymentOrder.id'));
+        PRAGMA user_version = 4;`);
     }
     db.exec("COMMIT");
     return db;
