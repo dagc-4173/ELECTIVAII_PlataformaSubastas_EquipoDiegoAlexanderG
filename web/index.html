@@ -20,6 +20,27 @@
           <button id="submit" type="submit">Ingresar</button>
         </form>
         <button class="text-button" id="open-registration" type="button">Crear una cuenta</button>
+        <button class="text-button" id="open-recovery" type="button">Olvidé mi contraseña</button>
+      </section>
+      <section class="card" id="recovery" aria-labelledby="recovery-heading" hidden>
+        <h1 id="recovery-heading" tabindex="-1">Recuperar contraseña</h1>
+        <form id="recovery-form">
+          <label for="recovery-email">Correo electrónico</label>
+          <input id="recovery-email" name="email" type="email" autocomplete="username" required>
+          <button type="submit">Solicitar enlace</button>
+        </form>
+        <button class="text-button" id="back-from-recovery" type="button">Volver a iniciar sesión</button>
+      </section>
+      <section class="card" id="reset" aria-labelledby="reset-heading" hidden>
+        <h1 id="reset-heading" tabindex="-1">Nueva contraseña</h1>
+        <form id="reset-form">
+          <label for="new-password">Contraseña nueva</label>
+          <input id="new-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+          <label for="confirm-password">Confirma la contraseña</label>
+          <input id="confirm-password" name="confirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+          <button type="submit">Guardar contraseña</button>
+        </form>
+        <button class="text-button" id="back-from-reset" type="button">Volver a iniciar sesión</button>
       </section>
       <section class="card" aria-labelledby="registration-heading" id="registration" hidden>
         <h1 id="registration-heading" tabindex="-1">Crear cuenta</h1>

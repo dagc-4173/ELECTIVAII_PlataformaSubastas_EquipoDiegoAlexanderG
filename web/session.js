@@ -13,6 +13,9 @@ const registrationForm = document.querySelector("#registration-form");
 const registerSubmit = document.querySelector("#register-submit");
 const openRegistration = document.querySelector("#open-registration");
 const backToLogin = document.querySelector("#back-to-login");
+const recovery = document.querySelector("#recovery");
+const reset = document.querySelector("#reset");
+const openRecovery = document.querySelector("#open-recovery");
 let userId;
 
 class ApiError extends Error {
@@ -29,6 +32,7 @@ async function request(path, options) {
     const body = await response.json().catch(() => null);
     throw new ApiError(response.status, body?.error);
   }
+  if (response.status === 202 || response.status === 204) return;
   return response.json();
 }
 
@@ -36,6 +40,8 @@ function showLogin(message = "", focus = false) {
   auctions.close();
   userId = undefined;
   registration.hidden = true;
+  recovery.hidden = true;
+  reset.hidden = true;
   profile.hidden = true;
   document.querySelector("#profile-name").textContent = "";
   login.hidden = false;
@@ -81,6 +87,7 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   submit.disabled = true;
   openRegistration.disabled = true;
+  openRecovery.disabled = true;
   status.textContent = "Iniciando sesión…";
   const fields = new FormData(form);
   let token;
@@ -108,6 +115,7 @@ form.addEventListener("submit", async (event) => {
   } finally {
     submit.disabled = false;
     openRegistration.disabled = false;
+    openRecovery.disabled = false;
   }
 });
 
@@ -188,4 +196,97 @@ document.querySelector("#logout").addEventListener("click", () => {
   showLogin("Sesión cerrada.", true);
 });
 
-await restoreSession();
+let resetToken;
+
+function openResetLink() {
+  const token = new URLSearchParams(location.hash.slice(1)).get("reset");
+  if (token === null) return false;
+  resetToken = token;
+  history.replaceState(null, "", location.pathname + location.search);
+  auctions.close();
+  login.hidden = true;
+  profile.hidden = true;
+  registration.hidden = true;
+  recovery.hidden = true;
+  retry.hidden = true;
+  document.querySelector("#reset-form").reset();
+  reset.hidden = false;
+  status.textContent = "";
+  document.querySelector("#reset-heading").focus();
+  return true;
+}
+
+window.addEventListener("hashchange", openResetLink);
+if (!openResetLink()) await restoreSession();
+
+openRecovery.addEventListener("click", () => {
+  document.querySelector("#recovery-email").value = form.elements.namedItem("email").value;
+  password.value = "";
+  login.hidden = true;
+  recovery.hidden = false;
+  status.textContent = "";
+  document.querySelector("#recovery-heading").focus();
+});
+
+document.querySelector("#back-from-recovery").addEventListener("click", () => showLogin("", true));
+document.querySelector("#back-from-reset").addEventListener("click", () => {
+  document.querySelector("#reset-form").reset();
+  showLogin("", true);
+});
+
+async function submitRecovery(event, path, getBody, success, failure) {
+  event.preventDefault();
+  const recoveryForm = event.currentTarget;
+  const submitButton = recoveryForm.querySelector('button[type="submit"]');
+  const back = recoveryForm.parentElement.querySelector(".text-button");
+  if (submitButton.disabled) return;
+  const body = getBody(new FormData(recoveryForm));
+  if (!body) return;
+  submitButton.disabled = true;
+  back.disabled = true;
+  status.textContent = "Enviando…";
+  try {
+    await request(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    success(recoveryForm);
+  } catch (error) {
+    status.textContent = failure(error);
+  } finally {
+    submitButton.disabled = false;
+    back.disabled = false;
+  }
+}
+
+document.querySelector("#recovery-form").addEventListener("submit", (event) => submitRecovery(
+  event,
+  "/auth/password-reset/request",
+  (fields) => ({ email: fields.get("email") }),
+  () => { status.textContent = "Si el correo está registrado, se generará un enlace de recuperación."; },
+  (error) => error.statusCode === 503
+    ? "La recuperación de contraseña no está habilitada en este servidor."
+    : "No pudimos solicitar el enlace. Vuelve a intentarlo.",
+));
+
+document.querySelector("#reset-form").addEventListener("submit", (event) => submitRecovery(
+  event,
+  "/auth/password-reset/confirm",
+  (fields) => {
+    const newPassword = fields.get("password");
+    if (!newPassword.trim() || newPassword !== fields.get("confirmation")) {
+      status.textContent = "Escribe una contraseña válida y confirma que ambas coincidan.";
+      return;
+    }
+    return { token: resetToken, password: newPassword };
+  },
+  (resetForm) => {
+    resetForm.reset();
+    sessionStorage.removeItem(tokenKey);
+    showLogin("Contraseña actualizada. Inicia sesión con la nueva.", true);
+  },
+  (error) => error.details?.code === "INVALID_RESET_TOKEN"
+    ? "El enlace venció o ya se usó. Vuelve al inicio de sesión y solicita otro."
+    : "No pudimos actualizar la contraseña. Vuelve a intentarlo.",
+));

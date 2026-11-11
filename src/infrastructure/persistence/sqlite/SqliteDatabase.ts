@@ -9,7 +9,9 @@ export function openDatabase(path: string): DatabaseSync {
   try {
     db.exec("PRAGMA foreign_keys = ON; BEGIN IMMEDIATE");
     const version = db.prepare("PRAGMA user_version").get()?.user_version;
-    if (version !== 0 && version !== 1 && version !== 2) throw new Error("Unsupported database schema version");
+    if (version !== 0 && version !== 1 && version !== 2 && version !== 3) {
+      throw new Error("Unsupported database schema version");
+    }
     if (version === 0) {
       db.exec(`CREATE TABLE users (
           id TEXT PRIMARY KEY NOT NULL,
@@ -23,10 +25,18 @@ export function openDatabase(path: string): DatabaseSync {
           revision INTEGER NOT NULL DEFAULT 0
         );`);
     }
-    if (version !== 2) {
+    if (version === 0 || version === 1) {
       db.exec(`ALTER TABLE auctions ADD COLUMN photo_type TEXT;
         ALTER TABLE auctions ADD COLUMN photo_bytes BLOB;
         PRAGMA user_version = 2;`);
+    }
+    if (version !== 3) {
+      db.exec(`CREATE TABLE password_resets (
+          user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          token_hash TEXT NOT NULL UNIQUE,
+          expires_at INTEGER NOT NULL
+        );
+        PRAGMA user_version = 3;`);
     }
     db.exec("COMMIT");
     return db;

@@ -30,6 +30,7 @@ import { LoginUserUseCase } from "../application/use-cases/LoginUserUseCase.js";
 import { JwtTokenService } from "./security/JwtTokenService.js";
 import { AuthController } from "./http/controllers/AuthController.js";
 import { createAuthRouter } from "./http/routes/authRoutes.js";
+import { createPasswordResetRouter } from "./http/routes/passwordResetRoutes.js";
 
 import { createAuthenticate } from "./http/middlewares/authenticate.js";
 
@@ -112,6 +113,7 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const authenticate = createAuthenticate(tokenService, userRepository,);
 
   app.use("/auth", createAuthRouter(authController));
+  app.use("/auth", createPasswordResetRouter(database, passwordHasher));
 
   app.use(
     "/users",

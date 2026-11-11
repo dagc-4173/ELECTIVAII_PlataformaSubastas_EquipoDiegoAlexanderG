@@ -30,6 +30,10 @@ Después de compilar e iniciar el servidor, abrir [la aplicación web local](htt
 
 Ingresar con el correo y la contraseña de esa cuenta. La vista de perfil muestra el nombre devuelto por la API. Recargar la página conserva la sesión en la misma pestaña mientras el token sea válido. El botón **Cerrar sesión** elimina la sesión de la pestaña.
 
+Para probar **Olvidé mi contraseña** localmente, establecer `PASSWORD_RESET_MODE=local` en `.env` y reiniciar el servidor. Al solicitar la recuperación para una cuenta registrada, copiar el enlace de la consola privada del servidor. El enlace vence en 15 minutos y se usa una sola vez.
+
+Para enviar enlaces por correo, configurar `PASSWORD_RESET_MODE=email`, `RESEND_API_KEY`, `PASSWORD_RESET_FROM` (remitente habilitado en Resend) y `PASSWORD_RESET_URL` (URL HTTPS de la aplicación, incluido `/web/`). Mantener la clave fuera del repositorio. Las sesiones que ya se habían abierto en otras pestañas conservan su vencimiento original.
+
 Desde **Mi perfil**, elegir **Ver subastas** para consultar el listado, filtrar por identificador de categoría o estado y abrir el detalle con el historial de pujas aceptadas.
 
 En el listado, elegir **Publicar subasta** y completar el artículo, la categoría, los valores en pesos y la fecha de cierre. Para ofertar, entrar con otra cuenta, abrir la subasta y enviar el monto desde el detalle. Cuando la API acepta la oferta, el detalle muestra el nuevo valor y actualiza el historial.

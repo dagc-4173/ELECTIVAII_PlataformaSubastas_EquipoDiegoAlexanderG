@@ -14,6 +14,48 @@ tags:
 - name: Users
   description: Operaciones relacionadas con usuarios
 paths:
+  /auth/password-reset/request:
+    post:
+      tags: [Auth]
+      summary: Solicitar un enlace de recuperación
+      description: La respuesta es igual si el correo existe o no.
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: {type: string, format: email}
+      responses:
+        '202':
+          description: Solicitud recibida
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          description: La recuperación no está configurada
+  /auth/password-reset/confirm:
+    post:
+      tags: [Auth]
+      summary: Cambiar la contraseña con un enlace de recuperación
+      operationId: confirmPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: {type: string}
+                password: {type: string, format: password, minLength: 8, maxLength: 128}
+      responses:
+        '204':
+          description: Contraseña actualizada
+        '400':
+          description: Contraseña inválida o enlace inválido, vencido o utilizado
   /auth/login:
     post:
       tags:
