@@ -37,7 +37,7 @@ Para enviar enlaces por correo, configurar `PASSWORD_RESET_MODE=email`, `RESEND_
 
 Desde **Mi perfil**, elegir **Ver subastas** para consultar el listado, filtrar por identificador de categoría o estado y abrir el detalle con el historial de pujas aceptadas.
 
-**Mis subastas** muestra tus publicaciones. **Mis pujas** muestra dónde participaste, si vas ganando, el resultado al cierre y el estado de tus órdenes.
+**Mis subastas** muestra tus publicaciones. **Mis pujas** muestra dónde participaste, si vas ganando, el resultado al cierre y el estado de tus órdenes. Las subastas abiertas aparecen primero en ambas vistas.
 
 Para probar las actualizaciones en vivo, abrir el detalle de la misma subasta con dos cuentas en ventanas separadas. Cuando se indique **En vivo**, ofertar desde una cuenta. La otra verá el monto y el historial actualizados. El contador refleja las cuentas conectadas al detalle. Si se pierde la conexión, la vista se reconecta y recupera el estado desde la API.
 

@@ -1,6 +1,7 @@
 import type { AuctionRepository } from "../../domain/ports/AuctionRepository.js";
 import { Auction } from "../../domain/entities/Auction.js";
 import { BusinessRuleViolationError } from "../../domain/errors/BusinessRuleViolationError.js";
+import { compareOpenAuctionsFirst } from "../compareOpenAuctionsFirst.js";
 
 export interface ListAuctionsInput {
   categoryId?: string;
@@ -50,9 +51,7 @@ export class ListAuctionsUseCase {
     const totalItems = filteredAuctions.length;
     const totalPages = Math.ceil(totalItems / input.pageSize);
 
-    filteredAuctions.sort((first, second) =>
-      Number(second.status.value === "OPEN") - Number(first.status.value === "OPEN"),
-    );
+    filteredAuctions.sort(compareOpenAuctionsFirst);
 
     const startIndex = (input.page - 1) * input.pageSize;
     const endIndex = startIndex + input.pageSize;

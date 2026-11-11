@@ -92,6 +92,33 @@ afterEach(async () => {
 });
 
 describe("RF-12–15 WebSocket auction updates", () => {
+  it("lists open auctions first in both profile activity views", async () => {
+    await bid("first", 100, "first-activity-bid");
+    const closingTime = new Date(now.getTime() + 3600000);
+    vi.setSystemTime(closingTime);
+    expect(application.closeDueAuctions.execute()).toBe(2);
+    await request(application.app).post("/auctions")
+      .set("Authorization", `Bearer ${tokens.seller}`)
+      .send({
+        auctionId: "open-activity", itemId: "item", categoryId: "category", basePrice: 100,
+        minimumIncrement: 10, publishedAt: closingTime.toISOString(),
+        closesAt: new Date(closingTime.getTime() + 3600000).toISOString(),
+      }).expect(201);
+    await request(application.app).post("/auctions/open-activity/bids")
+      .set("Authorization", `Bearer ${tokens.first}`)
+      .send({ bidId: "open-activity-bid", amount: 100, rejectedBidAttemptId: "open-activity-rejection" })
+      .expect(201);
+
+    const seller = await request(application.app).get("/users/me")
+      .set("Authorization", `Bearer ${tokens.seller}`).expect(200);
+    const bidder = await request(application.app).get("/users/me")
+      .set("Authorization", `Bearer ${tokens.first}`).expect(200);
+    expect(seller.body.publishedAuctions.map((auction: { id: string }) => auction.id))
+      .toEqual(["open-activity", "auction-a", "auction-b"]);
+    expect(bidder.body.participatedAuctions.map((auction: { id: string }) => auction.id))
+      .toEqual(["open-activity", "auction-a"]);
+  });
+
   it("accepts only one of two simultaneous bids of the same amount", async () => {
     const observer = await client("observer");
     await observer.subscribe();

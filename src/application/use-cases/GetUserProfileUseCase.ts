@@ -2,6 +2,7 @@ import type { AuctionRepository } from "../../domain/ports/AuctionRepository.js"
 import type { UserRepository } from "../../domain/ports/UserRepository.js";
 import { UserId } from "../../domain/value-objects/UserId.js";
 import { NotFoundError } from "../errors/NotFoundError.js";
+import { compareOpenAuctionsFirst } from "../compareOpenAuctionsFirst.js";
 
 export class GetUserProfileUseCase {
   constructor(
@@ -14,7 +15,7 @@ export class GetUserProfileUseCase {
     const user = await this.userRepository.findById(userId);
     if (user === null) throw new NotFoundError("User not found");
 
-    const auctions = await this.auctionRepository.findAll();
+    const auctions = [...await this.auctionRepository.findAll()].sort(compareOpenAuctionsFirst);
     return {
       user: { id: user.id.value, name: user.name, email: user.email.value },
       publishedAuctions: auctions.filter((auction) => auction.seller.equals(userId)),
