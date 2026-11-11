@@ -130,6 +130,18 @@ main:has(#auctions:not([hidden])) {
 
 #auction-detail, #auction-publication { max-width: 42rem; }
 
+#auction-connection {
+  color: #254634;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+#auction-live-notice {
+  padding: 0.75rem;
+  border-inline-start: 3px solid #3d7454;
+  background: #eff3eb;
+}
+
 .auction-photo {
   width: 100%;
   max-height: 28rem;

@@ -1,3 +1,5 @@
+import { connectAuction } from "./auction-realtime.js";
+
 const states = {
   OPEN: "Abierta",
   CLOSED: "Cerrada",
@@ -72,6 +74,8 @@ export function setupAuctions(request, onExpired) {
   const next = document.querySelector("#next-page");
   const message = document.querySelector("#auction-status");
   const detailContent = document.querySelector("#auction-detail-content");
+  const connection = document.querySelector("#auction-connection");
+  const liveNotice = document.querySelector("#auction-live-notice");
   const publication = document.querySelector("#auction-publication");
   const publicationForm = document.querySelector("#publication-form");
   const publicationTerms = document.querySelector("#publication-terms");
@@ -91,6 +95,70 @@ export function setupAuctions(request, onExpired) {
   let submitting = false;
   let previewUrl;
   let editing = false;
+  let stopLive;
+
+  function leaveLiveDetail() {
+    stopLive?.();
+    stopLive = undefined;
+    connection.hidden = true;
+    liveNotice.hidden = true;
+  }
+
+  function startLiveDetail(id, token) {
+    leaveLiveDetail();
+    let sync;
+    let closingTimer;
+    connection.hidden = false;
+
+    function scheduleCloseCheck() {
+      clearTimeout(closingTimer);
+      if (currentAuction.status !== "OPEN") return;
+      const remaining = Date.parse(currentAuction.closesAt) - Date.now();
+      closingTimer = setTimeout(refresh, Math.min(2_147_483_647, Math.max(1000, remaining + 200)));
+    }
+
+    async function refresh() {
+      sync?.abort();
+      const controller = new AbortController();
+      sync = controller;
+      try {
+        const auction = await request(`/auctions/${encodeURIComponent(id)}`, {
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!controller.signal.aborted) renderDetail(auction, true);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        if (error.statusCode === 401) {
+          onExpired();
+          return;
+        }
+      }
+      if (!controller.signal.aborted) scheduleCloseCheck();
+    }
+
+    const disconnect = connectAuction(id, token, {
+      onExpired,
+      onConnection(connected) {
+        connection.textContent = connected ? "En vivo" : "Conectando actualizaciones…";
+      },
+      onMessage(type) {
+        if (type === "BID_OUTBID") {
+          liveNotice.textContent = "Otro postor superó tu oferta.";
+          liveNotice.hidden = false;
+        }
+        if (["SUBSCRIBED", "BID_ACCEPTED", "AUCTION_CLOSED", "BID_OUTBID"].includes(type)) {
+          void refresh();
+        }
+      },
+    });
+    scheduleCloseCheck();
+    stopLive = () => {
+      disconnect();
+      sync?.abort();
+      clearTimeout(closingTimer);
+    };
+  }
 
   function clearPreview() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -138,7 +206,14 @@ export function setupAuctions(request, onExpired) {
     }
   }
 
-  function renderDetail(auction) {
+  function renderDetail(auction, fromLive = false) {
+    if (currentAuction?.id === auction.id && (
+      auction.bids.length < currentAuction.bids.length ||
+      (currentAuction.status !== "OPEN" && auction.status === "OPEN")
+    )) return;
+    const photo = fromLive && currentAuction?.itemId === auction.itemId
+      ? detailContent.querySelector("img")
+      : null;
     currentAuction = auction;
     document.querySelector("#auction-detail-heading").textContent = auction.itemId;
     const history = document.createElement("ol");
@@ -146,7 +221,7 @@ export function setupAuctions(request, onExpired) {
       history.append(element("li", `${money.format(bid.amount)} · ${date.format(new Date(bid.placedAt))}`));
     }
     detailContent.replaceChildren(
-      auctionPhoto(auction),
+      photo ?? auctionPhoto(auction),
       element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
       element("p", amount(auction)),
       element("p", `Incremento mínimo: ${money.format(auction.minimumIncrement)}`),
@@ -175,6 +250,7 @@ export function setupAuctions(request, onExpired) {
   }
 
   function showDetail(id, token) {
+    leaveLiveDetail();
     openDetail();
     const heading = document.querySelector("#auction-detail-heading");
     heading.textContent = "Detalle de subasta";
@@ -183,11 +259,15 @@ export function setupAuctions(request, onExpired) {
     bidForm.hidden = true;
     editPublication.hidden = true;
     currentAuction = undefined;
-    return load(`/auctions/${encodeURIComponent(id)}`, renderDetail,
+    return load(`/auctions/${encodeURIComponent(id)}`, (auction) => {
+      renderDetail(auction);
+      startLiveDetail(id, token);
+    },
       "No pudimos cargar el detalle. Vuelve al listado e inténtalo otra vez.", token);
   }
 
   function showList(token, focus = false) {
+    leaveLiveDetail();
     view.hidden = false;
     detail.hidden = true;
     publication.hidden = true;
@@ -260,6 +340,7 @@ export function setupAuctions(request, onExpired) {
   }
 
   function openPublication(auction) {
+    leaveLiveDetail();
     active?.abort();
     editing = Boolean(auction);
     publicationForm.reset();
@@ -310,6 +391,7 @@ export function setupAuctions(request, onExpired) {
         clearPreview();
         openDetail();
         renderDetail(auction);
+        startLiveDetail(auction.id, sessionToken);
         message.textContent = "Cambios guardados.";
         document.querySelector("#auction-detail-heading").focus();
       }, "No pudimos guardar los cambios. Revisa los datos o vuelve a intentarlo.", "PATCH");
@@ -340,6 +422,7 @@ export function setupAuctions(request, onExpired) {
       page = 1;
       openDetail();
       renderDetail(auction);
+      startLiveDetail(auction.id, sessionToken);
       message.textContent = "Subasta publicada.";
       document.querySelector("#auction-detail-heading").focus();
     }, "No pudimos publicar la subasta. Revisa los datos o vuelve a intentarlo.");
@@ -358,7 +441,8 @@ export function setupAuctions(request, onExpired) {
       rejectedBidAttemptId: crypto.randomUUID(),
       amount: bidAmount,
     }, (auction) => {
-      renderDetail(auction);
+      renderDetail(auction, true);
+      liveNotice.hidden = true;
       bidForm.reset();
       message.textContent = "Oferta aceptada.";
     }, "No pudimos registrar la oferta. Vuelve a intentarlo.");
@@ -386,6 +470,7 @@ export function setupAuctions(request, onExpired) {
       return showList(token, true);
     },
     close() {
+      leaveLiveDetail();
       active?.abort();
       view.hidden = true;
       sessionToken = undefined;

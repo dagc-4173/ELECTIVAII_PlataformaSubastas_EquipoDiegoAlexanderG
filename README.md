@@ -36,6 +36,8 @@ Para enviar enlaces por correo, configurar `PASSWORD_RESET_MODE=email`, `RESEND_
 
 Desde **Mi perfil**, elegir **Ver subastas** para consultar el listado, filtrar por identificador de categoría o estado y abrir el detalle con el historial de pujas aceptadas.
 
+Para probar las actualizaciones en vivo, abrir el detalle de la misma subasta con dos cuentas en ventanas separadas. Cuando se indique **En vivo**, ofertar desde una cuenta. La otra verá el monto y el historial actualizados. Si se pierde la conexión, la vista se reconecta y recupera el estado desde la API. Al llegar la hora de cierre, una vista abierta consulta el detalle para que el servidor compruebe el vencimiento y difunda el resultado.
+
 En el listado, elegir **Publicar subasta** y completar el artículo, la categoría, los valores en pesos y la fecha de cierre. Para ofertar, entrar con otra cuenta, abrir la subasta y enviar el monto desde el detalle. Cuando la API acepta la oferta, el detalle muestra el nuevo valor y actualiza el historial.
 
 Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
