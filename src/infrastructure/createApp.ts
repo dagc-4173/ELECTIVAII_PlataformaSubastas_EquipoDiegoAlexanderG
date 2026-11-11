@@ -10,6 +10,7 @@ import { PublishAuctionUseCase } from "../application/use-cases/PublishAuctionUs
 import { EditAuctionUseCase } from "../application/use-cases/EditAuctionUseCase.js";
 import { ProcessPaymentEventUseCase } from "../application/use-cases/ProcessPaymentEventUseCase.js";
 import { ExpirePendingPaymentsUseCase } from "../application/use-cases/ExpirePendingPaymentsUseCase.js";
+import { CloseDueAuctionsUseCase } from "../application/use-cases/CloseDueAuctionsUseCase.js";
 import { SqlitePaymentEventStore } from "./persistence/sqlite/SqlitePaymentEventStore.js";
 import { createPaymentWebhookRouter } from "./http/routes/paymentWebhookRoutes.js";
 import { GetAuctionUseCase } from "../application/use-cases/GetAuctionUseCase.js";
@@ -45,11 +46,15 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const tokenService = new JwtTokenService(jwtSecret, jwtExpiresInSeconds);
   const database = openDatabase(databasePath);
   const app = express();
+  const auctionRepository = new SqliteAuctionRepository(database);
+  const idGenerator = new RandomIdGenerator();
+  const userRepository = new SqliteUserRepository(database);
+  const realtime = new WebSocketAuctionEventPublisher(tokenService, userRepository, auctionRepository);
   const paymentStore = new SqlitePaymentEventStore(database);
-  const expirePendingPayments = new ExpirePendingPaymentsUseCase(paymentStore);
+  const expirePendingPayments = new ExpirePendingPaymentsUseCase(paymentStore, realtime);
 
   app.use("/payments", createPaymentWebhookRouter(
-    new ProcessPaymentEventUseCase(paymentStore),
+    new ProcessPaymentEventUseCase(paymentStore, realtime),
     process.env.PAYMENT_WEBHOOK_SECRET,
   ));
   const json = express.json({ limit: "100kb" });
@@ -64,7 +69,6 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   });
   app.use("/web", express.static(fileURLToPath(new URL("../../web/", import.meta.url))));
 
-  const auctionRepository = new SqliteAuctionRepository(database);
   app.get("/auctions/:auctionId/photo", (request, response) => {
     response.set("Cache-Control", "no-cache");
     const photo = auctionRepository.findPhoto(request.params.auctionId);
@@ -75,9 +79,7 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
     response.set("X-Content-Type-Options", "nosniff");
     response.type(photo.photo_type).send(Buffer.from(photo.photo_bytes));
   });
-  const idGenerator = new RandomIdGenerator();
-  const userRepository = new SqliteUserRepository(database);
-  const realtime = new WebSocketAuctionEventPublisher(tokenService, userRepository, auctionRepository);
+  const closeDueAuctions = new CloseDueAuctionsUseCase(auctionRepository, idGenerator, realtime);
   const passwordHasher = new ScryptPasswordHasher();
 
   const publishAuctionUseCase = new PublishAuctionUseCase(auctionRepository);
@@ -148,5 +150,5 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   });
   app.use(errorHandler);
 
-  return { app, realtime, expirePendingPayments, close: () => database.close() };
+  return { app, realtime, closeDueAuctions, expirePendingPayments, close: () => database.close() };
 }

@@ -5,8 +5,9 @@ import type { AuctionId } from "../../../domain/value-objects/AuctionId.js";
 import { ApiError } from "../../http/errors/ApiError.js";
 import { BusinessRuleViolationError } from "../../../domain/errors/BusinessRuleViolationError.js";
 import { deserializeAuction, serializeAuction } from "./AuctionDocument.js";
+import type { DueAuctionStore } from "../../../application/use-cases/CloseDueAuctionsUseCase.js";
 
-export class SqliteAuctionRepository implements AuctionRepository {
+export class SqliteAuctionRepository implements AuctionRepository, DueAuctionStore {
   private readonly revisions = new WeakMap<Auction, number>();
 
   constructor(private readonly db: DatabaseSync) {}
@@ -37,6 +38,30 @@ export class SqliteAuctionRepository implements AuctionRepository {
     return this.db.prepare(
       "SELECT photo_type, photo_bytes FROM auctions WHERE id = ? AND photo_bytes IS NOT NULL",
     ).get(id);
+  }
+
+  closeDue(now: Date, close: (auction: Auction) => void): readonly Auction[] {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const rows = this.db.prepare(
+        `SELECT document FROM auctions
+         WHERE json_extract(document, '$.status') = 'OPEN'
+           AND json_extract(document, '$.closesAt') <= ?
+         ORDER BY json_extract(document, '$.closesAt') LIMIT 100`,
+      ).all(now.toISOString());
+      const update = this.db.prepare("UPDATE auctions SET document = ?, revision = revision + 1 WHERE id = ?");
+      const closed = rows.map((row) => {
+        const auction = deserializeAuction(String(row.document));
+        close(auction);
+        update.run(serializeAuction(auction), auction.id.value);
+        return auction;
+      });
+      this.db.exec("COMMIT");
+      return closed;
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   async findById(id: AuctionId): Promise<Auction | null> {

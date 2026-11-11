@@ -27,7 +27,13 @@ export class UserController {
     response.status(200).json({
       ...profile.user,
       publishedAuctions: profile.publishedAuctions.map(AuctionResponseMapper.toResponse),
-      participatedAuctions: profile.participatedAuctions.map(AuctionResponseMapper.toResponse),
+      participatedAuctions: profile.participatedAuctions.map((auction) => {
+        const order = auction.paymentOrder;
+        return {
+          ...AuctionResponseMapper.toResponse(auction),
+          ...(order?.winner.value === userId && { paymentStatus: order.status.value }),
+        };
+      }),
     });
   };
 

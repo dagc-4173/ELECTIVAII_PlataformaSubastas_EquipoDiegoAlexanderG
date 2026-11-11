@@ -69,7 +69,11 @@ export class WebSocketAuctionEventPublisher implements AuctionEventPublisher {
     deadline.unref();
     socket.on("pong", () => { session.alive = true; });
     socket.on("error", (error) => console.error("WebSocket connection error:", error));
-    socket.on("close", () => { clearTimeout(deadline); this.sessions.delete(session); });
+    socket.on("close", () => {
+      clearTimeout(deadline);
+      this.sessions.delete(session);
+      for (const auctionId of session.subscriptions) this.publishParticipants(auctionId);
+    });
     socket.on("message", (data, binary) => {
       queue = queue.then(async () => {
         if (socket.readyState !== WebSocket.OPEN) return;
@@ -106,6 +110,7 @@ export class WebSocketAuctionEventPublisher implements AuctionEventPublisher {
         if (message.type === "UNSUBSCRIBE") {
           session.subscriptions.delete(message.auctionId);
           this.send(session, { type: "UNSUBSCRIBED", auctionId: message.auctionId });
+          this.publishParticipants(message.auctionId);
           return;
         }
         if (await this.users.findById(UserId.create(session.userId!)) === null) {
@@ -118,6 +123,7 @@ export class WebSocketAuctionEventPublisher implements AuctionEventPublisher {
         }
         session.subscriptions.add(message.auctionId);
         this.send(session, { type: "SUBSCRIBED", auctionId: message.auctionId });
+        this.publishParticipants(message.auctionId);
       }).catch((error: unknown) => {
         console.error("WebSocket message error:", error);
         this.error(session, "INTERNAL_SERVER_ERROR", "Unexpected server error");
@@ -131,6 +137,10 @@ export class WebSocketAuctionEventPublisher implements AuctionEventPublisher {
       if (this.tokens.verify(session.token) === null) { session.socket.close(1008, "Token expired"); continue; }
       if (event.type === "BID_OUTBID") {
         if (session.userId === event.recipientId) this.send(session, event);
+      } else if (event.type === "PAYMENT_UPDATED" && event.recipientId !== undefined) {
+        if (session.userId === event.recipientId && session.subscriptions.has(event.auctionId)) {
+          this.send(session, { type: event.type, auctionId: event.auctionId });
+        }
       } else {
         if (session.subscriptions.has(event.auctionId)) this.send(session, event);
         if (event.type === "AUCTION_CLOSED" && (session.userId === event.winnerId || session.userId === event.sellerId)) {
@@ -138,6 +148,15 @@ export class WebSocketAuctionEventPublisher implements AuctionEventPublisher {
         }
       }
     }
+  }
+
+  private publishParticipants(auctionId: string): void {
+    const subscribed = [...this.sessions].filter((session) =>
+      session.socket.readyState === WebSocket.OPEN && session.subscriptions.has(auctionId)
+      && session.token !== undefined && this.tokens.verify(session.token) !== null,
+    );
+    const count = new Set(subscribed.map((session) => session.userId)).size;
+    for (const session of subscribed) this.send(session, { type: "PARTICIPANT_COUNT", auctionId, count });
   }
 
   private error(session: Session, code: string, message: string): void {

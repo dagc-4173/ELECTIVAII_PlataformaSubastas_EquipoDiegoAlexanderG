@@ -6,4 +6,5 @@ const app = application.app;
 const closeDatabase = application.close;
 const realtime = application.realtime;
 const expirePendingPayments = application.expirePendingPayments;
-export { app, closeDatabase, realtime, expirePendingPayments };
+const closeDueAuctions = application.closeDueAuctions;
+export { app, closeDatabase, realtime, closeDueAuctions, expirePendingPayments };

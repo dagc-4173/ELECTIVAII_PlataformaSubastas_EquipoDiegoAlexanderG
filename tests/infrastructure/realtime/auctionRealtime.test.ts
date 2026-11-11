@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
 import { WebSocket } from "ws";
 import request from "supertest";
@@ -6,13 +7,14 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../../../src/infrastructure/createApp.js";
 
 type Message = { type: string; auctionId?: string; recipientId?: string; amount?: number; winnerId?: string | null;
-  status?: string; error?: { code: string }; };
+  status?: string; count?: number; error?: { code: string }; };
 let application: ReturnType<typeof createApp>;
 let server: Server;
 let url: string;
 let now: Date;
 const tokens: Record<string, string> = {};
 const clients: WebSocket[] = [];
+const paymentSecret = "realtime-payment-test-secret-0123456789";
 
 async function client(userId?: string) {
   const socket = new WebSocket(url);
@@ -53,6 +55,7 @@ async function bid(userId: string, amount: number, id: string) {
 beforeEach(async () => {
   vi.stubEnv("JWT_SECRET", "realtime-integration-secret-0123456789abcdef");
   vi.stubEnv("JWT_EXPIRES_IN_SECONDS", "7200");
+  vi.stubEnv("PAYMENT_WEBHOOK_SECRET", paymentSecret);
   application = createApp(":memory:");
   server = createServer(application.app);
   application.realtime.attach(server);
@@ -89,6 +92,65 @@ afterEach(async () => {
 });
 
 describe("RF-12–15 WebSocket auction updates", () => {
+  it("accepts only one of two simultaneous bids of the same amount", async () => {
+    const observer = await client("observer");
+    await observer.subscribe();
+    const responses = await Promise.all([bid("first", 100, "equal-first"), bid("second", 100, "equal-second")]);
+    expect(responses.filter((response) => response.status === 201)).toHaveLength(1);
+    const rejected = responses.find((response) => response.status !== 201)!;
+    expect([400, 409]).toContain(rejected.status);
+    expect(["BUSINESS_RULE_VIOLATION", "CONCURRENT_MODIFICATION"]).toContain(rejected.body.error.code);
+    const detail = await request(application.app).get("/auctions/auction-a")
+      .set("Authorization", `Bearer ${tokens.observer}`).expect(200);
+    expect(detail.body.bids).toHaveLength(1);
+    await observer.wait("BID_ACCEPTED");
+    await observer.barrier();
+    expect(observer.messages.filter((event) => event.type === "BID_ACCEPTED")).toHaveLength(1);
+  });
+
+  it("closes due auctions without a detail request and privately notifies the winner about a confirmed payment", async () => {
+    const winner = await client("first");
+    const observer = await client("observer");
+    await winner.subscribe(); await observer.subscribe();
+    await bid("first", 100, "winning-bid");
+    vi.setSystemTime(new Date(now.getTime() + 3600000));
+    expect(application.closeDueAuctions.execute()).toBe(2);
+    expect(application.closeDueAuctions.execute()).toBe(0);
+    expect(await winner.wait("AUCTION_CLOSED")).toMatchObject({ winnerId: "first", status: "CLOSED" });
+    const publicList = await request(application.app).get("/auctions").expect(200);
+    expect(publicList.body.items.map((auction: { status: string }) => auction.status)).toEqual(["CLOSED", "DESERTED"]);
+    const order = await request(application.app).get("/auctions/auction-a/payment-order")
+      .set("Authorization", `Bearer ${tokens.first}`).expect(200);
+    const body = JSON.stringify({
+      eventId: "live-payment", paymentOrderId: order.body.id, result: "SUCCESS", occurredAt: new Date().toISOString(),
+    });
+    const signature = createHmac("sha256", paymentSecret).update(body).digest("hex");
+    for (const _delivery of [1, 2]) {
+      await request(application.app).post("/payments/webhook").type("json")
+        .set("X-Payment-Signature", signature).send(body).expect(200);
+    }
+    expect(await winner.wait("PAYMENT_UPDATED")).toEqual({ type: "PAYMENT_UPDATED", auctionId: "auction-a" });
+    await winner.barrier(); await observer.barrier();
+    expect(winner.messages.filter((event) => event.type === "PAYMENT_UPDATED")).toHaveLength(1);
+    expect(observer.messages.some((event) => event.type === "PAYMENT_UPDATED")).toBe(false);
+  });
+
+  it("counts distinct subscribed accounts and updates the count on disconnect", async () => {
+    const first = await client("first");
+    await first.subscribe();
+    expect(await first.wait("PARTICIPANT_COUNT")).toMatchObject({ count: 1 });
+    const duplicate = await client("first");
+    await duplicate.subscribe();
+    expect(await duplicate.wait("PARTICIPANT_COUNT")).toMatchObject({ count: 1 });
+    await first.barrier();
+    let start = first.messages.length;
+    const second = await client("second");
+    await second.subscribe();
+    expect(await first.wait("PARTICIPANT_COUNT", start)).toMatchObject({ count: 2 });
+    start = first.messages.length;
+    second.socket.close();
+    expect(await first.wait("PARTICIPANT_COUNT", start)).toMatchObject({ count: 1 });
+  });
   it("broadcasts accepted bids to both room clients and sends outbid only to the previous leader", async () => {
     const first = await client("first"); const second = await client("second"); const unrelated = await client("observer");
     await first.subscribe(); await second.subscribe(); await unrelated.subscribe("auction-b");
