@@ -30,6 +30,29 @@ function createAuction(
 }
 
 describe("ListAuctionsUseCase - RF-05", () => {
+  it("puts open auctions first before applying pagination", async () => {
+    const repository = new InMemoryAuctionRepository();
+    const cancelled = createAuction("cancelled-first", "category-001");
+    cancelled.cancel(UserId.create("seller-001"));
+    const deserted = createAuction("deserted", "category-001");
+    deserted.close(deserted.publication.closesAt);
+    for (const auction of [
+      cancelled,
+      createAuction("open-first", "category-001"),
+      deserted,
+      createAuction("open-second", "category-001"),
+    ]) {
+      await repository.save(auction);
+    }
+
+    const useCase = new ListAuctionsUseCase(repository);
+    const firstPage = await useCase.execute({ page: 1, pageSize: 2 });
+    const secondPage = await useCase.execute({ page: 2, pageSize: 2 });
+
+    expect(firstPage.items.map((auction) => auction.id.value)).toEqual(["open-first", "open-second"]);
+    expect(secondPage.items.map((auction) => auction.id.value)).toEqual(["cancelled-first", "deserted"]);
+  });
+
   it("should return paginated auctions", async () => {
     const repository = new InMemoryAuctionRepository();
 

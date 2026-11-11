@@ -50,6 +50,10 @@ export class ListAuctionsUseCase {
     const totalItems = filteredAuctions.length;
     const totalPages = Math.ceil(totalItems / input.pageSize);
 
+    filteredAuctions.sort((first, second) =>
+      Number(second.status.value === "OPEN") - Number(first.status.value === "OPEN"),
+    );
+
     const startIndex = (input.page - 1) * input.pageSize;
     const endIndex = startIndex + input.pageSize;
 

@@ -270,6 +270,7 @@ paths:
       security: []
       summary: Listar subastas
       operationId: listAuctions
+      description: Las subastas abiertas se ordenan primero antes de aplicar la paginación.
       parameters:
       - name: categoryId
         in: query
