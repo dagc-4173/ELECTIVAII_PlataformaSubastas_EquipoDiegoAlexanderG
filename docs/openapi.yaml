@@ -2,7 +2,10 @@ openapi: 3.0.3
 info:
   title: Plataforma de Subastas API
   version: 1.0.0
-  description: API REST de la Plataforma de Subastas en Línea de Electiva II - Desarrollo. Las fechas de entrada requieren fecha/hora ISO con segundos y zona horaria. El cuerpo JSON admite 100 KiB, o 3 MiB al publicar o editar una subasta con foto.
+  description: API REST de la Plataforma de Subastas en Línea de Electiva II - Desarrollo. Documenta las operaciones REST, la autenticación JWT y las respuestas HTTP. Las rutas desconocidas responden 404 ROUTE_NOT_FOUND. Las fechas de entrada requieren fecha/hora ISO con segundos y zona horaria. El cuerpo JSON admite 100 KiB, 3 MiB al publicar o editar una subasta y 16 KiB para el webhook de pagos. Los campos adicionales no consumidos se ignoran.
+  license:
+    name: ISC
+    url: https://opensource.org/license/isc-license-txt
 servers:
 - url: http://localhost:3000
   description: Servidor local
@@ -108,6 +111,7 @@ paths:
     post:
       tags:
       - Auth
+      security: []
       summary: Autenticar un usuario
       description: Valida las credenciales y devuelve un token JWT.
       operationId: loginUser
@@ -204,6 +208,7 @@ paths:
     post:
       tags:
       - Users
+      security: []
       summary: Registrar un nuevo usuario
       operationId: registerUser
       requestBody:
@@ -262,6 +267,7 @@ paths:
     get:
       tags:
       - Auctions
+      security: []
       summary: Listar subastas
       operationId: listAuctions
       parameters:

@@ -23,7 +23,7 @@ La solución implementa una plataforma de subastas en línea siguiendo **Arquite
 
 La [guía de la Entrega 3](docs/delivery-three-demo.md) reúne el arranque desde cero, la demostración con tres cuentas y la comprobación del cierre y del pago simulado.
 
-La [revisión de la Entrega 2](docs/delivery-two-handoff.md) conserva el registro de la integración del backend, SQLite y WebSockets. La [corrección del historial](docs/history-cleanup.md) documenta la limpieza autorizada y sus límites.
+La Entrega 2 se integró en `main` mediante los PR #4, #5 y #6. La [revisión de la Entrega 2](docs/delivery-two-handoff.md) conserva el registro de la integración del backend, SQLite y WebSockets, junto con sus validaciones. La [corrección del historial](docs/history-cleanup.md) documenta la limpieza autorizada y sus límites.
 
 ## Acceso a la aplicación web
 
