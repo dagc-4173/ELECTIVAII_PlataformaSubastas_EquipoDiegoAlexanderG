@@ -52,6 +52,8 @@ node scripts/simulate-payment.mjs <id-de-la-orden> SUCCESS
 
 El simulador firma el cuerpo JSON con HMAC-SHA256 y lo envía dos veces a `POST /payments/webhook`. Las dos respuestas deben ser idénticas. En el detalle del ganador, pulsar **Actualizar estado del pago** para ver la orden **Confirmada**. Usar `FAILED` para simular un fallo que deja la orden pendiente antes del vencimiento.
 
+El servidor revisa las órdenes pendientes al iniciar y cada 30 segundos. Si se cumple el plazo sin confirmación, la orden pasa a **Vencida** y la subasta a **Incumplida**. En el detalle del ganador, **Actualizar estado del pago** consulta el estado guardado.
+
 Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
 
 En el detalle, el vendedor puede elegir **Editar publicación** mientras la subasta siga abierta y sin pujas. Puede corregir el artículo y la categoría, y seleccionar una foto nueva para reemplazar la actual.

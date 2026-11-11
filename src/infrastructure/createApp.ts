@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { PublishAuctionUseCase } from "../application/use-cases/PublishAuctionUseCase.js";
 import { EditAuctionUseCase } from "../application/use-cases/EditAuctionUseCase.js";
 import { ProcessPaymentEventUseCase } from "../application/use-cases/ProcessPaymentEventUseCase.js";
+import { ExpirePendingPaymentsUseCase } from "../application/use-cases/ExpirePendingPaymentsUseCase.js";
 import { SqlitePaymentEventStore } from "./persistence/sqlite/SqlitePaymentEventStore.js";
 import { createPaymentWebhookRouter } from "./http/routes/paymentWebhookRoutes.js";
 import { GetAuctionUseCase } from "../application/use-cases/GetAuctionUseCase.js";
@@ -44,9 +45,11 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const tokenService = new JwtTokenService(jwtSecret, jwtExpiresInSeconds);
   const database = openDatabase(databasePath);
   const app = express();
+  const paymentStore = new SqlitePaymentEventStore(database);
+  const expirePendingPayments = new ExpirePendingPaymentsUseCase(paymentStore);
 
   app.use("/payments", createPaymentWebhookRouter(
-    new ProcessPaymentEventUseCase(new SqlitePaymentEventStore(database)),
+    new ProcessPaymentEventUseCase(paymentStore),
     process.env.PAYMENT_WEBHOOK_SECRET,
   ));
   const json = express.json({ limit: "100kb" });
@@ -145,5 +148,5 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   });
   app.use(errorHandler);
 
-  return { app, realtime, close: () => database.close() };
+  return { app, realtime, expirePendingPayments, close: () => database.close() };
 }

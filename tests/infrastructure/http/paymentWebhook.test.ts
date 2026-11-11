@@ -58,7 +58,7 @@ async function fixture() {
   function event(eventId: string, result = "SUCCESS") {
     return JSON.stringify({ eventId, paymentOrderId: initialOrder.id, result, occurredAt: new Date().toISOString() });
   }
-  return { notify, event, order, dueAt: initialOrder.dueAt };
+  return { notify, event, order, dueAt: initialOrder.dueAt, expire: runtime.expirePendingPayments, http };
 }
 
 it("rejects an invalid signature without changing the order or consuming the event ID", async () => {
@@ -89,4 +89,26 @@ it("expires an overdue order when a late notification arrives", async () => {
   vi.setSystemTime(new Date(dueAt));
   await notify(event("late-1")).expect(200, { eventId: "late-1", outcome: "EXPIRED" });
   expect((await order()).status).toBe("EXPIRED");
+});
+
+it("expires a pending order at its deadline without any webhook delivery", async () => {
+  const { expire, order, dueAt, notify, event, http } = await fixture();
+  vi.setSystemTime(new Date(Date.parse(dueAt) - 1));
+  expect(expire.execute()).toBe(0);
+  expect((await order()).status).toBe("PENDING");
+  vi.setSystemTime(new Date(dueAt));
+  expect(expire.execute()).toBe(1);
+  expect(expire.execute()).toBe(0);
+  expect((await order()).status).toBe("EXPIRED");
+  const listing = await http.get("/auctions").expect(200);
+  expect(listing.body.items[0].status).toBe("DEFAULTED");
+  await notify(event("late-after-sweep")).expect(200, { eventId: "late-after-sweep", outcome: "EXPIRED" });
+});
+
+it("preserves a confirmed order after its deadline", async () => {
+  const { expire, order, dueAt, notify, event } = await fixture();
+  await notify(event("paid-before-sweep")).expect(200);
+  vi.setSystemTime(new Date(dueAt));
+  expect(expire.execute()).toBe(0);
+  expect((await order()).status).toBe("CONFIRMED");
 });

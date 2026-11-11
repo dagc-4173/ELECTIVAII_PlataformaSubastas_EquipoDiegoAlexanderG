@@ -142,6 +142,9 @@ export function setupAuctions(request, onExpired) {
       }
       paymentSummary.replaceChildren(fields);
       paymentFeedback.textContent = "Estado del pago actualizado.";
+      if (order.status === "EXPIRED" && currentAuction.status === "CLOSED") {
+        renderDetail({ ...currentAuction, status: "DEFAULTED" }, true);
+      }
     } catch (error) {
       if (controller.signal.aborted) return;
       if (error.statusCode === 401) onExpired();

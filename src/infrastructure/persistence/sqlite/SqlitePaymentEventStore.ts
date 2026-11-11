@@ -1,10 +1,12 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { PaymentEventStore, PaymentOutcome } from "../../../application/use-cases/ProcessPaymentEventUseCase.js";
 import type { PaymentEvent } from "../../../domain/entities/PaymentEvent.js";
+import type { Auction } from "../../../domain/entities/Auction.js";
+import type { PendingPaymentStore } from "../../../application/use-cases/ExpirePendingPaymentsUseCase.js";
 import { ApiError } from "../../http/errors/ApiError.js";
 import { deserializeAuction, serializeAuction } from "./AuctionDocument.js";
 
-export class SqlitePaymentEventStore implements PaymentEventStore {
+export class SqlitePaymentEventStore implements PaymentEventStore, PendingPaymentStore {
   constructor(private readonly db: DatabaseSync) {}
 
   process(event: PaymentEvent, apply: Parameters<PaymentEventStore["process"]>[1]): PaymentOutcome {
@@ -33,6 +35,30 @@ export class SqlitePaymentEventStore implements PaymentEventStore {
         .run(event.id.value, fingerprint, outcome);
       this.db.exec("COMMIT");
       return outcome;
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  expireDue(now: Date, expire: (auction: Auction) => void): number {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const rows = this.db.prepare(
+        `SELECT document FROM auctions
+         WHERE json_extract(document, '$.paymentOrder.status') = 'PENDING'
+           AND json_extract(document, '$.paymentOrder.dueAt') <= ?
+         ORDER BY json_extract(document, '$.paymentOrder.dueAt')
+         LIMIT 100`,
+      ).all(now.toISOString());
+      const update = this.db.prepare("UPDATE auctions SET document = ?, revision = revision + 1 WHERE id = ?");
+      for (const row of rows) {
+        const auction = deserializeAuction(String(row.document));
+        expire(auction);
+        update.run(serializeAuction(auction), auction.id.value);
+      }
+      this.db.exec("COMMIT");
+      return rows.length;
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;
