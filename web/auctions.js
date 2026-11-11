@@ -14,6 +14,9 @@ const money = new Intl.NumberFormat("es-CO", {
 const date = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" });
 
 const operationErrors = new Map([
+  ["Only the auction seller can edit the publication", "Solo el vendedor puede editar la publicación."],
+  ["Only open auctions can be edited", "La subasta ya no está abierta para edición."],
+  ["Auction with bids cannot be edited", "La subasta ya recibió una puja y no se puede editar."],
   ["Auction duration must be at least one hour", "Elige un cierre al menos una hora después de la publicación."],
   ["Auction duration cannot exceed thirty days", "Elige un cierre dentro de los próximos 30 días."],
   ["Auction closing date must be after publication date", "La fecha de cierre debe ser posterior a la publicación."],
@@ -71,6 +74,9 @@ export function setupAuctions(request, onExpired) {
   const detailContent = document.querySelector("#auction-detail-content");
   const publication = document.querySelector("#auction-publication");
   const publicationForm = document.querySelector("#publication-form");
+  const publicationTerms = document.querySelector("#publication-terms");
+  const publicationHeading = document.querySelector("#publication-heading");
+  const editPublication = document.querySelector("#edit-publication");
   const photoInput = document.querySelector("#auction-photo");
   const photoPreview = document.querySelector("#photo-preview");
   const bidForm = document.querySelector("#bid-form");
@@ -84,6 +90,7 @@ export function setupAuctions(request, onExpired) {
   let userId;
   let submitting = false;
   let previewUrl;
+  let editing = false;
 
   function clearPreview() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -152,6 +159,8 @@ export function setupAuctions(request, onExpired) {
       : auction.currentBidAmount + auction.minimumIncrement;
     document.querySelector("#bid-minimum").textContent = `Próxima oferta mínima: ${money.format(minimum)}`;
     bidForm.hidden = auction.status !== "OPEN" || auction.sellerId === userId;
+    editPublication.hidden = auction.sellerId !== userId || auction.status !== "OPEN"
+      || auction.bids.length > 0 || Date.parse(auction.closesAt) <= Date.now();
   }
 
   function openDetail() {
@@ -168,6 +177,7 @@ export function setupAuctions(request, onExpired) {
     heading.focus();
     detailContent.replaceChildren();
     bidForm.hidden = true;
+    editPublication.hidden = true;
     currentAuction = undefined;
     return load(`/auctions/${encodeURIComponent(id)}`, renderDetail,
       "No pudimos cargar el detalle. Vuelve al listado e inténtalo otra vez.", token);
@@ -215,14 +225,14 @@ export function setupAuctions(request, onExpired) {
     }, "No pudimos cargar las subastas. Usa Buscar para reintentar.");
   }
 
-  async function submitOperation(form, path, body, onSuccess, fallback) {
+  async function submitOperation(form, path, body, onSuccess, fallback, method = "POST") {
     const controls = [form.querySelector('button[type="submit"]'), backToProfile, backToList, cancelPublication];
     submitting = true;
     controls.forEach((control) => { control.disabled = true; });
     message.textContent = "Enviando…";
     try {
       const result = await request(path, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
         body: JSON.stringify(await (typeof body === "function" ? body() : body)),
       });
@@ -245,17 +255,34 @@ export function setupAuctions(request, onExpired) {
     }
   }
 
-  document.querySelector("#open-publication").addEventListener("click", () => {
+  function openPublication(auction) {
     active?.abort();
+    editing = Boolean(auction);
+    publicationForm.reset();
+    clearPreview();
     listing.hidden = true;
+    detail.hidden = true;
     publication.hidden = false;
+    publicationTerms.hidden = editing;
+    publicationTerms.disabled = editing;
+    publicationHeading.textContent = editing ? "Editar publicación" : "Publicar subasta";
+    publicationForm.querySelector('button[type="submit"]').textContent = editing ? "Guardar cambios" : "Publicar";
+    cancelPublication.textContent = editing ? "Volver al detalle" : "Volver a subastas";
+    if (auction) {
+      publicationForm.elements.namedItem("itemId").value = auction.itemId;
+      publicationForm.elements.namedItem("categoryId").value = auction.categoryId;
+    }
     message.textContent = "";
-    document.querySelector("#publication-heading").focus();
-  });
+    publicationHeading.focus();
+  }
+
+  document.querySelector("#open-publication").addEventListener("click", () => openPublication());
+  editPublication.addEventListener("click", () => openPublication(currentAuction));
   cancelPublication.addEventListener("click", () => {
     publicationForm.reset();
     clearPreview();
-    showList(sessionToken, true);
+    if (editing) showDetail(currentAuction.id, sessionToken);
+    else showList(sessionToken, true);
   });
 
   publicationForm.addEventListener("submit", (event) => {
@@ -264,6 +291,26 @@ export function setupAuctions(request, onExpired) {
     const fields = new FormData(publicationForm);
     const itemId = fields.get("itemId").trim();
     const categoryId = fields.get("categoryId").trim();
+    const file = photoInput.files[0];
+    if (editing) {
+      if (!itemId || !categoryId) {
+        message.textContent = "Completa el artículo y la categoría.";
+        return;
+      }
+      submitOperation(publicationForm, `/auctions/${encodeURIComponent(currentAuction.id)}`, async () => ({
+        itemId,
+        categoryId,
+        ...(file && { photo: await readPhoto(file) }),
+      }), (auction) => {
+        publicationForm.reset();
+        clearPreview();
+        openDetail();
+        renderDetail(auction);
+        message.textContent = "Cambios guardados.";
+        document.querySelector("#auction-detail-heading").focus();
+      }, "No pudimos guardar los cambios. Revisa los datos o vuelve a intentarlo.", "PATCH");
+      return;
+    }
     const basePrice = Number(fields.get("basePrice"));
     const minimumIncrement = Number(fields.get("minimumIncrement"));
     const closesAt = new Date(fields.get("closesAt"));
@@ -273,7 +320,6 @@ export function setupAuctions(request, onExpired) {
       return;
     }
 
-    const file = photoInput.files[0];
     submitOperation(publicationForm, "/auctions", async () => ({
       auctionId: crypto.randomUUID(),
       itemId,

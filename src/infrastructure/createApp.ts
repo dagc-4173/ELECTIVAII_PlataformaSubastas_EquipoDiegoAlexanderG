@@ -7,6 +7,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 
 import { PublishAuctionUseCase } from "../application/use-cases/PublishAuctionUseCase.js";
+import { EditAuctionUseCase } from "../application/use-cases/EditAuctionUseCase.js";
 import { GetAuctionUseCase } from "../application/use-cases/GetAuctionUseCase.js";
 import { ListAuctionsUseCase } from "../application/use-cases/ListAuctionsUseCase.js";
 import { CancelAuctionUseCase } from "../application/use-cases/CancelAuctionUseCase.js";
@@ -43,7 +44,9 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const json = express.json({ limit: "100kb" });
   const publicationJson = express.json({ limit: "3mb" });
   app.use((request, response, next) => {
-    const parse = request.method === "POST" && /^\/auctions\/?$/i.test(request.path)
+    const acceptsPhoto = (request.method === "POST" && /^\/auctions\/?$/i.test(request.path))
+      || (request.method === "PATCH" && /^\/auctions\/[^/]+\/?$/i.test(request.path));
+    const parse = acceptsPhoto
       ? publicationJson
       : json;
     parse(request, response, next);
@@ -52,6 +55,7 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
 
   const auctionRepository = new SqliteAuctionRepository(database);
   app.get("/auctions/:auctionId/photo", (request, response) => {
+    response.set("Cache-Control", "no-cache");
     const photo = auctionRepository.findPhoto(request.params.auctionId);
     if (typeof photo?.photo_type !== "string" || !(photo.photo_bytes instanceof Uint8Array)) {
       response.sendStatus(404);
@@ -91,6 +95,7 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
     listAuctionsUseCase,
     cancelAuctionUseCase,
     placeBidUseCase,
+    new EditAuctionUseCase(auctionRepository),
   );
 
   const loginUserUseCase = new LoginUserUseCase(

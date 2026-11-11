@@ -7,6 +7,7 @@ import type { CancelAuctionUseCase } from "../../../application/use-cases/Cancel
 import type { PlaceBidUseCase } from "../../../application/use-cases/PlaceBidUseCase.js";
 import { AuctionResponseMapper } from "../mappers/AuctionResponseMapper.js";
 import { parseAuctionPhoto } from "../auctionPhoto.js";
+import type { EditAuctionUseCase } from "../../../application/use-cases/EditAuctionUseCase.js";
 
 interface PublishAuctionBody {
   auctionId: string;
@@ -43,6 +44,7 @@ export class AuctionController {
     private readonly listAuctionsUseCase: ListAuctionsUseCase,
     private readonly cancelAuctionUseCase: CancelAuctionUseCase,
     private readonly placeBidUseCase: PlaceBidUseCase,
+    private readonly editAuctionUseCase: EditAuctionUseCase,
   ) {}
 
   publish = async (
@@ -63,6 +65,19 @@ export class AuctionController {
     console.log(`Auction published: ${auction.id.value}`);
 
     response.status(201).json(AuctionResponseMapper.toResponse(auction));
+  };
+
+  edit = async (
+    request: Request<AuctionParams, object, Pick<PublishAuctionBody, "itemId" | "categoryId" | "photo">>,
+    response: Response,
+  ): Promise<void> => {
+    const auction = await this.editAuctionUseCase.execute({
+      auctionId: request.params.auctionId,
+      sellerId: this.getAuthenticatedUserId(response),
+      itemId: request.body.itemId,
+      categoryId: request.body.categoryId,
+    }, parseAuctionPhoto(request.body.photo));
+    response.status(200).json(AuctionResponseMapper.toResponse(auction));
   };
 
   cancel = async (

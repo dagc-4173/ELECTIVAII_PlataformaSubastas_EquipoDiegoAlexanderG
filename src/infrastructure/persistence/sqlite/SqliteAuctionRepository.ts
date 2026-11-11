@@ -22,8 +22,11 @@ export class SqliteAuctionRepository implements AuctionRepository {
       this.revisions.set(auction, 0);
       return;
     }
-    const updated = this.db.prepare("UPDATE auctions SET document = ?, revision = revision + 1 WHERE id = ? AND revision = ?")
-      .run(document, auction.id.value, revision);
+    const updated = this.db.prepare(
+      `UPDATE auctions SET document = ?, revision = revision + 1,
+        photo_type = COALESCE(?, photo_type), photo_bytes = COALESCE(?, photo_bytes)
+        WHERE id = ? AND revision = ?`,
+    ).run(document, photo?.contentType ?? null, photo?.bytes ?? null, auction.id.value, revision);
     if (updated.changes === 0) {
       throw new ApiError(409, "CONCURRENT_MODIFICATION", "Auction changed; reload and retry the operation");
     }

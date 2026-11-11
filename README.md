@@ -36,6 +36,8 @@ En el listado, elegir **Publicar subasta** y completar el artículo, la categor�
 
 Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
 
+En el detalle, el vendedor puede elegir **Editar publicación** mientras la subasta siga abierta y sin pujas. Puede corregir el artículo y la categoría, y seleccionar una foto nueva para reemplazar la actual.
+
 ## Alcance de la Entrega 1
 
 La primera entrega se concentra en:
@@ -447,7 +449,7 @@ Este comando compila, crea una base temporal, guarda usuarios y una subasta adju
 
 # API REST
 
-La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`. El límite del cuerpo JSON es 100 KiB, excepto en `POST /auctions`, que admite hasta 3 MiB para incluir el campo opcional `photo` como URL de datos en Base64. La foto se consulta en `GET /auctions/{auctionId}/photo`.
+La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`. El límite del cuerpo JSON es 100 KiB, excepto en `POST /auctions` y `PATCH /auctions/{auctionId}`, que admiten hasta 3 MiB para incluir el campo opcional `photo` como URL de datos en Base64. La foto se consulta en `GET /auctions/{auctionId}/photo`.
 
 | Método | Ruta | Acceso | Resultado exitoso |
 |---|---|---|---|

@@ -16,8 +16,8 @@ export class Auction {
   private constructor(
     private readonly auctionId: AuctionId,
     private readonly sellerId: UserId,
-    private readonly itemId: ItemId,
-    private readonly categoryId: CategoryId,
+    private itemId: ItemId,
+    private categoryId: CategoryId,
     private readonly publicationData: AuctionPublicationData,
     private statusValue: AuctionStatus,
     private readonly bids: Bid[],
@@ -104,6 +104,20 @@ export class Auction {
     throw new BusinessRuleViolationError(reason);
   }
 
+
+  editPublication(requesterId: UserId, item: ItemId, category: CategoryId, now: Date): void {
+    if (!requesterId.equals(this.sellerId)) {
+      throw new ForbiddenOperationError("Only the auction seller can edit the publication");
+    }
+    if (!this.statusValue.equals(AuctionStatus.open()) || now >= this.publicationData.closesAt) {
+      throw new BusinessRuleViolationError("Only open auctions can be edited");
+    }
+    if (this.bids.length > 0) {
+      throw new BusinessRuleViolationError("Auction with bids cannot be edited");
+    }
+    this.itemId = item;
+    this.categoryId = category;
+  }
 
   cancel(requesterId: UserId): void {
     if (!requesterId.equals(this.sellerId)) {

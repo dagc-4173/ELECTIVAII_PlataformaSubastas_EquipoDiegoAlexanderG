@@ -1,4 +1,4 @@
-import { requireJson, validateAuctionParams, validateAuctionQuery, validateAuctionPublication, validateBid } from "../middlewares/validateRequest.js";
+import { requireJson, validateAuctionParams, validateAuctionQuery, validateAuctionPublication, validateBid, validateBody } from "../middlewares/validateRequest.js";
 
 
 import { Router } from "express";
@@ -44,6 +44,15 @@ export function createAuctionRouter(
     requireJson,
     validateBid,
     auctionController.placeBid,
+  );
+
+  router.patch<AuctionParams>(
+    "/:auctionId",
+    authenticate,
+    validateAuctionParams,
+    requireJson,
+    validateBody({ itemId: "string", categoryId: "string" }),
+    auctionController.edit,
   );
 
   // Cancelar una subasta

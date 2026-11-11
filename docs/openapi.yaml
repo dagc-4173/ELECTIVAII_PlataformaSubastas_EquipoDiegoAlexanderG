@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Plataforma de Subastas API
   version: 1.0.0
-  description: API REST de la Plataforma de Subastas en Línea de Electiva II - Desarrollo. Las fechas de entrada requieren fecha/hora ISO con segundos y zona horaria. El cuerpo JSON admite 100 KiB, o 3 MiB al publicar una subasta con foto.
+  description: API REST de la Plataforma de Subastas en Línea de Electiva II - Desarrollo. Las fechas de entrada requieren fecha/hora ISO con segundos y zona horaria. El cuerpo JSON admite 100 KiB, o 3 MiB al publicar o editar una subasta con foto.
 servers:
 - url: http://localhost:3000
   description: Servidor local
@@ -276,6 +276,48 @@ paths:
           $ref: '#/components/responses/ConcurrentModification'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+      - Auctions
+      summary: Editar el artículo, la categoría o la foto de una subasta
+      operationId: editAuction
+      description: Disponible para el vendedor mientras la subasta esté abierta y sin pujas. Si se omite la foto, se conserva la actual.
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemId, categoryId]
+              properties:
+                itemId: {type: string}
+                categoryId: {type: string}
+                photo:
+                  type: string
+                  description: URL de datos Base64 de una foto JPEG, PNG o WebP de hasta 2 MiB.
+      responses:
+        '200':
+          description: Publicación actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          description: La cuenta autenticada no es el vendedor
+        '404':
+          description: La subasta no existe
+        '409':
+          description: La subasta cambió durante la edición
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
     delete:
       tags:
       - Auctions

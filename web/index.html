@@ -80,13 +80,15 @@
             <input id="auction-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-formats">
             <small id="photo-formats">JPEG, PNG o WebP, hasta 2 MB.</small>
             <img id="photo-preview" class="auction-photo" alt="Vista previa de la foto" hidden>
-            <label for="base-price">Precio base (COP)</label>
-            <input id="base-price" name="basePrice" type="number" min="1" step="1" required>
-            <label for="minimum-increment">Incremento mínimo (COP)</label>
-            <input id="minimum-increment" name="minimumIncrement" type="number" min="1" step="1" required>
-            <label for="closing-date">Fecha y hora de cierre</label>
-            <input id="closing-date" name="closesAt" type="datetime-local" aria-describedby="publication-duration" required>
-            <small id="publication-duration">La subasta debe durar entre 1 hora y 30 días.</small>
+            <fieldset id="publication-terms">
+              <label for="base-price">Precio base (COP)</label>
+              <input id="base-price" name="basePrice" type="number" min="1" step="1" required>
+              <label for="minimum-increment">Incremento mínimo (COP)</label>
+              <input id="minimum-increment" name="minimumIncrement" type="number" min="1" step="1" required>
+              <label for="closing-date">Fecha y hora de cierre</label>
+              <input id="closing-date" name="closesAt" type="datetime-local" aria-describedby="publication-duration" required>
+              <small id="publication-duration">La subasta debe durar entre 1 hora y 30 días.</small>
+            </fieldset>
             <button type="submit">Publicar</button>
           </form>
         </section>
@@ -94,6 +96,7 @@
           <button class="text-button" id="back-to-auctions" type="button">Volver a subastas</button>
           <h1 id="auction-detail-heading" tabindex="-1">Detalle de subasta</h1>
           <div id="auction-detail-content"></div>
+          <button id="edit-publication" type="button" hidden>Editar publicación</button>
           <form id="bid-form" hidden>
             <label for="bid-amount">Tu oferta (COP)</label>
             <input id="bid-amount" name="amount" type="number" min="1" step="1" aria-describedby="bid-minimum" required>

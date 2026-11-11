@@ -18,6 +18,7 @@ import { PublishAuctionUseCase } from "../../../src/application/use-cases/Publis
 
 import { AuctionController } from "../../../src/infrastructure/http/controllers/AuctionController.js";
 import { createAuctionRouter } from "../../../src/infrastructure/http/routes/auctionRoutes.js";
+import { EditAuctionUseCase } from "../../../src/application/use-cases/EditAuctionUseCase.js";
 import { createAuthenticate } from "../../../src/infrastructure/http/middlewares/authenticate.js";
 import { errorHandler } from "../../../src/infrastructure/http/middlewares/errorHandler.js";
 import { RandomIdGenerator } from "../../../src/infrastructure/id/RandomIdGenerator.js";
@@ -73,6 +74,7 @@ async function createFixture() {
     new ListAuctionsUseCase(repository),
     new CancelAuctionUseCase(repository),
     new PlaceBidUseCase(repository, idGenerator),
+    new EditAuctionUseCase(repository),
   );
 
   const tokenService = new JwtTokenService(
