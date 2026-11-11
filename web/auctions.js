@@ -14,6 +14,7 @@ const money = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 const date = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" });
+const paymentStates = { PENDING: "Pendiente", CONFIRMED: "Confirmada", EXPIRED: "Vencida" };
 
 const operationErrors = new Map([
   ["Only the auction seller can edit the publication", "Solo el vendedor puede editar la publicación."],
@@ -81,6 +82,10 @@ export function setupAuctions(request, onExpired) {
   const detailContent = document.querySelector("#auction-detail-content");
   const connection = document.querySelector("#auction-connection");
   const liveNotice = document.querySelector("#auction-live-notice");
+  const payment = document.querySelector("#payment-order");
+  const paymentSummary = document.querySelector("#payment-summary");
+  const paymentFeedback = document.querySelector("#payment-feedback");
+  const refreshPayment = document.querySelector("#refresh-payment");
   const publication = document.querySelector("#auction-publication");
   const publicationForm = document.querySelector("#publication-form");
   const publicationTerms = document.querySelector("#publication-terms");
@@ -103,6 +108,51 @@ export function setupAuctions(request, onExpired) {
   let previewUrl;
   let editing = false;
   let stopLive;
+  let paymentRequest;
+  let paymentAuctionId;
+
+  function clearPayment() {
+    paymentRequest?.abort();
+    paymentAuctionId = undefined;
+    payment.hidden = true;
+    paymentSummary.replaceChildren();
+    paymentFeedback.textContent = "";
+  }
+
+  async function loadPayment() {
+    paymentRequest?.abort();
+    const controller = new AbortController();
+    paymentRequest = controller;
+    refreshPayment.disabled = true;
+    paymentFeedback.textContent = "Consultando la orden…";
+    try {
+      const order = await request(`/auctions/${encodeURIComponent(paymentAuctionId)}/payment-order`, {
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${sessionToken}` },
+      });
+      if (controller.signal.aborted) return;
+      const fields = document.createElement("dl");
+      for (const [label, value] of [
+        ["Estado", paymentStates[order.status] ?? order.status],
+        ["Monto", money.format(order.amount)],
+        ["Fecha límite", date.format(new Date(order.dueAt))],
+        ["Identificador", order.id],
+      ]) {
+        fields.append(element("dt", label), element("dd", value));
+      }
+      paymentSummary.replaceChildren(fields);
+      paymentFeedback.textContent = "Estado del pago actualizado.";
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      if (error.statusCode === 401) onExpired();
+      else if (error.statusCode === 403) clearPayment();
+      else paymentFeedback.textContent = "No pudimos consultar la orden. Intenta actualizar su estado.";
+    } finally {
+      if (!controller.signal.aborted) refreshPayment.disabled = false;
+    }
+  }
+
+  refreshPayment.addEventListener("click", loadPayment);
 
   function leaveLiveDetail() {
     stopLive?.();
@@ -249,9 +299,16 @@ export function setupAuctions(request, onExpired) {
     bidForm.hidden = auction.status !== "OPEN" || auction.sellerId === userId || leading;
     editPublication.hidden = auction.sellerId !== userId || auction.status !== "OPEN"
       || auction.bids.length > 0 || Date.parse(auction.closesAt) <= Date.now();
+    if ((auction.status === "CLOSED" || auction.status === "DEFAULTED")
+      && auction.bids.at(-1)?.bidderId === userId && paymentAuctionId !== auction.id) {
+      paymentAuctionId = auction.id;
+      payment.hidden = false;
+      void loadPayment();
+    }
   }
 
   function openDetail() {
+    clearPayment();
     listing.hidden = true;
     publication.hidden = true;
     detail.hidden = false;
@@ -292,6 +349,7 @@ export function setupAuctions(request, onExpired) {
   }
 
   function showList(token, focus = false) {
+    clearPayment();
     leaveLiveDetail();
     view.hidden = false;
     detail.hidden = true;
@@ -372,6 +430,7 @@ export function setupAuctions(request, onExpired) {
   }
 
   function openPublication(auction) {
+    clearPayment();
     leaveLiveDetail();
     active?.abort();
     editing = Boolean(auction);
@@ -522,6 +581,7 @@ export function setupAuctions(request, onExpired) {
       return showList(token, true);
     },
     close() {
+      clearPayment();
       leaveLiveDetail();
       active?.abort();
       view.hidden = true;

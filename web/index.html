@@ -119,6 +119,12 @@
           <h1 id="auction-detail-heading" tabindex="-1">Detalle de subasta</h1>
           <p id="auction-connection" role="status" hidden></p>
           <p id="auction-live-notice" role="status" hidden></p>
+          <section id="payment-order" aria-labelledby="payment-heading" hidden>
+            <h2 id="payment-heading">Orden de pago</h2>
+            <div id="payment-summary"></div>
+            <p id="payment-feedback" role="status"></p>
+            <button class="text-button" id="refresh-payment" type="button">Actualizar estado del pago</button>
+          </section>
           <div id="auction-detail-content"></div>
           <button id="edit-publication" type="button" hidden>Editar publicación</button>
           <form id="bid-form" novalidate hidden>

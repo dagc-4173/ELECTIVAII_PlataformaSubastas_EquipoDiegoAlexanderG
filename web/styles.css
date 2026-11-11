@@ -130,6 +130,26 @@ main:has(#auctions:not([hidden])) {
 
 #auction-detail, #auction-publication { max-width: 42rem; }
 
+#payment-order {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid #d7dcd2;
+  border-radius: 0.5rem;
+  background: #eff3eb;
+}
+
+#payment-order h2 { margin-top: 0; }
+
+#payment-summary dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+}
+
+#payment-summary dt { font-weight: 600; }
+
+#payment-summary dd { margin: 0; overflow-wrap: anywhere; }
+
 #auction-connection {
   color: #254634;
   font-size: 0.875rem;
