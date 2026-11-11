@@ -13,16 +13,17 @@ La solución implementa una plataforma de subastas en línea siguiendo **Arquite
 - **Modalidad:** Individual
 - **Equipo:** Diego Alexander Gutiérrez Cardona
 - **Integrante:** Diego Alexander Gutiérrez Cardona
-- **Fecha de entrega informada:** 3 de noviembre de 2026
+- **Fecha informada para la Entrega 3:** 20 de noviembre de 2026
 - **Repositorio:** `ELECTIVAII_PlataformaSubastas_EquipoDiegoAlexanderG`
-- **Entrega actual:** Entrega 2 - API completa y comunicación en tiempo real (en desarrollo)
-- **Entrega 1:** Modelado del dominio y recursos de la API
+- **Entrega actual:** Entrega 3 - Aplicación web integrada
 
 ---
 
-## Candidata de Entrega 2
+## Guía de sustentación
 
-La rama `release/entrega-2` reúne la implementación de backend, SQLite, WebSockets y validaciones revisadas. Véase la [guía de revisión y sustentación](docs/delivery-two-handoff.md), con instalación, evidencias y condiciones académicas pendientes. Publicar esta candidata no implica haber integrado `main` ni haber entregado formalmente al docente. La [corrección del historial](docs/history-cleanup.md) documenta la limpieza autorizada y sus límites.
+La [guía de la Entrega 3](docs/delivery-three-demo.md) reúne el arranque desde cero, la demostración con tres cuentas y la comprobación del cierre y del pago simulado.
+
+La [revisión de la Entrega 2](docs/delivery-two-handoff.md) conserva el registro de la integración del backend, SQLite y WebSockets. La [corrección del historial](docs/history-cleanup.md) documenta la limpieza autorizada y sus límites.
 
 ## Acceso a la aplicación web
 
@@ -42,6 +43,10 @@ En el listado, elegir **Publicar subasta** y completar el artículo, la categor�
 
 Si la API rechaza una puja, el detalle muestra el motivo junto al campo de oferta. Los errores de monto conservan lo que se escribió y devuelven el foco al campo para poder corregirlo.
 
+Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
+
+En el detalle, el vendedor puede elegir **Editar publicación** mientras la subasta siga abierta y sin pujas. Puede corregir el artículo y la categoría, y seleccionar una foto nueva para reemplazar la actual.
+
 ### Demostración de confirmación del pago
 
 Configurar `PAYMENT_WEBHOOK_SECRET` en `.env` con un valor aleatorio de al menos 32 caracteres y reiniciar el servidor. Después del cierre, abrir el detalle con la cuenta ganadora y copiar el identificador de **Orden de pago**. La orden también se puede consultar con el token del ganador en `GET /auctions/{auctionId}/payment-order`. Ejecutar desde el repositorio:
@@ -53,10 +58,6 @@ node scripts/simulate-payment.mjs <id-de-la-orden> SUCCESS
 El simulador firma el cuerpo JSON con HMAC-SHA256 y lo envía dos veces a `POST /payments/webhook`. Las dos respuestas deben ser idénticas. En el detalle del ganador, pulsar **Actualizar estado del pago** para ver la orden **Confirmada**. Usar `FAILED` para simular un fallo que deja la orden pendiente antes del vencimiento.
 
 El servidor revisa las órdenes pendientes al iniciar y cada 30 segundos. Si se cumple el plazo sin confirmación, la orden pasa a **Vencida** y la subasta a **Incumplida**. En el detalle del ganador, **Actualizar estado del pago** consulta el estado guardado.
-
-Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
-
-En el detalle, el vendedor puede elegir **Editar publicación** mientras la subasta siga abierta y sin pujas. Puede corregir el artículo y la categoría, y seleccionar una foto nueva para reemplazar la actual.
 
 ## Alcance de la Entrega 1
 
@@ -298,6 +299,8 @@ El backend utiliza:
 
 El proyecto usa TypeScript en modo estricto.
 
+La aplicación web usa HTML, CSS y módulos JavaScript del navegador. Express sirve la interfaz, REST y WebSocket desde el mismo origen. Esto permite iniciar toda la solución con un solo proceso y usar `fetch` y `WebSocket` sin dependencias de compilación para la interfaz.
+
 ---
 
 # Requisitos previos
@@ -359,6 +362,7 @@ PORT=3000
 JWT_SECRET=reemplazar-por-un-secreto-local-aleatorio-de-32-caracteres-o-mas
 JWT_EXPIRES_IN_SECONDS=3600
 DATABASE_PATH=./data/auctions.sqlite
+PAYMENT_WEBHOOK_SECRET=reemplazar-por-otro-secreto-local-aleatorio
 ```
 
 Para desarrollo local puede crearse un archivo:
@@ -382,7 +386,7 @@ Puede generar un secreto con:
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Las variables ya definidas en el entorno tienen prioridad sobre `.env`. `DATABASE_PATH` es opcional y vale `./data/auctions.sqlite` por defecto; una ruta relativa se resuelve desde el directorio de inicio de Node. Mantener la misma ruta al reiniciar. Una ruta vacía o sin permisos de escritura impide iniciar el servidor.
+Las variables ya definidas en el entorno tienen prioridad sobre `.env`. `DATABASE_PATH` es opcional y vale `./data/auctions.sqlite` por defecto. Una ruta relativa se resuelve desde el directorio de inicio de Node. Mantener la misma ruta al reiniciar. Una ruta vacía o sin permisos de escritura impide iniciar el servidor. `PAYMENT_WEBHOOK_SECRET` es obligatorio para habilitar la confirmación simulada del pago y debe tener al menos 32 caracteres.
 
 No deben almacenarse credenciales reales dentro del repositorio.
 
@@ -803,7 +807,7 @@ La trazabilidad completa de RN-01 a RN-23 se encuentra en:
 docs/business-rules-traceability.md
 ```
 
-RN-22 está implementada y probada. RN-17 es parcial; RN-18 y RN-19 están pendientes. RN-23 cuenta con pruebas HTTP del acceso autenticado al detalle y de ausencia de datos privados.
+RN-17 a RN-20 cuentan con pruebas de confirmación, firma inválida, idempotencia y vencimiento de órdenes. RN-23 cuenta con pruebas HTTP del acceso autenticado al detalle y de ausencia de datos privados.
 
 Este documento permite identificar para cada regla:
 
@@ -952,6 +956,7 @@ final
 ```text
 .
 ├── docs/
+│   ├── delivery-three-demo.md
 │   ├── websocket-api.md
 │   ├── business-rules-traceability.md
 │   └── openapi.yaml
@@ -990,6 +995,8 @@ final
 │   ├── domain/
 │   └── infrastructure/
 │
+├── web/
+├── scripts/
 ├── .env.example
 ├── .gitignore
 ├── package.json
@@ -999,50 +1006,18 @@ final
 
 ---
 
-# Estado actual de la Entrega 2 (en desarrollo)
+# Alcance de la Entrega 3
 
-Actualmente se encuentra implementado:
+| Requisito | Comprobación en la aplicación |
+|---|---|
+| RF-21 | Iniciar sesión y conservarla al recargar la pestaña. |
+| RF-22 | Consultar el listado paginado, aplicar filtros y abrir el detalle. |
+| RF-23 | Publicar con la cuenta vendedora y ofertar con una cuenta postora. |
+| RF-24 | Ver cambios de oferta e historial en vivo y observar el cierre desde dos sesiones. |
+| RF-25 | Corregir un monto rechazado a partir del motivo que muestra el detalle. |
+| RF-18 a RF-20 | Confirmar la orden mediante una notificación firmada y comprobar que el reenvío obtiene la misma respuesta. |
 
-- modelo de dominio;
-- objetos de valor;
-- agregado `Auction`;
-- reglas principales de publicación y pujas;
-- registro de intentos de puja rechazados;
-- adjudicación;
-- orden de pago dentro del dominio y consulta protegida para el ganador (RF-17);
-- puertos de persistencia;
-- persistencia SQLite mediante adaptadores;
-- casos de uso;
-- cierre perezoso;
-- registro de usuario con validación de correo único;
-- perfil autenticado con subastas publicadas y participadas (RF-03);
-- filtros por categoría y estado;
-- paginación;
-- API REST de subastas, registro y login de usuarios;
-- autenticación JWT y autorización para cancelar y pujar;
-- hash de contraseñas con `scrypt`;
-- WebSockets con suscripciones por subasta y avisos de puja, superación y cierre;
-- puerto de salida de eventos desacoplado de la biblioteca WebSocket;
-- DTOs HTTP;
-- manejo uniforme de errores;
-- configuración de puerto y JWT mediante variables de entorno;
-- pruebas unitarias;
-- trazabilidad de reglas de negocio;
-- documentación OpenAPI.
-
-Siguen pendientes las notificaciones externas, la verificación y el procesamiento idempotente de eventos de pago (RN-17 parcial; RN-18 y RN-19 pendientes). WebSockets (RF-12–15) y la persistencia real SQLite ya están implementados. Las validaciones HTTP y los errores uniformes ya están revisados. Falta completar las condiciones académicas y preparar la entrega. No se declara completa la Entrega 2.
-
----
-
-# Próximas entregas
-
-## Entrega 2
-
-La etapa actual debe completar la solución con los componentes definidos por el documento del proyecto, incluyendo funcionalidades de backend adicionales y comunicación en tiempo real.
-
-## Entrega 3
-
-La última entrega integrará el backend con la aplicación web.
+El cierre de la subasta se comprueba al consultar el detalle o intentar una puja después del plazo. Una vista abierta consulta automáticamente al llegar la hora. El vencimiento de las órdenes pendientes se revisa al iniciar el servidor y cada 30 segundos.
 
 ---
 
