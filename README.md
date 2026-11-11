@@ -24,6 +24,12 @@ La solución implementa una plataforma de subastas en línea siguiendo **Arquite
 
 La rama `release/entrega-2` reúne la implementación de backend, SQLite, WebSockets y validaciones revisadas. Véase la [guía de revisión y sustentación](docs/delivery-two-handoff.md), con instalación, evidencias y condiciones académicas pendientes. Publicar esta candidata no implica haber integrado `main` ni haber entregado formalmente al docente. La [corrección del historial](docs/history-cleanup.md) documenta la limpieza autorizada y sus límites.
 
+## Acceso a la aplicación web
+
+Después de compilar e iniciar el servidor, abrir [la aplicación web local](http://localhost:3000/web/). Si se configuró otro puerto en `PORT`, usar ese puerto. Elegir **Crear una cuenta** y completar el nombre, el correo electrónico y la contraseña.
+
+Ingresar con el correo y la contraseña de esa cuenta. La vista de perfil muestra el nombre devuelto por la API. Recargar la página conserva la sesión en la misma pestaña mientras el token sea válido. El botón **Cerrar sesión** elimina la sesión de la pestaña.
+
 ## Alcance de la Entrega 1
 
 La primera entrega se concentra en:

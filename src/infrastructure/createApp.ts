@@ -4,6 +4,7 @@ import { PaymentOrderController } from "./http/controllers/PaymentOrderControlle
 import { createPaymentOrderRouter } from "./http/routes/paymentOrderRoutes.js";
 import { GetUserProfileUseCase } from "../application/use-cases/GetUserProfileUseCase.js";
 import express from "express";
+import { fileURLToPath } from "node:url";
 
 import { PublishAuctionUseCase } from "../application/use-cases/PublishAuctionUseCase.js";
 import { GetAuctionUseCase } from "../application/use-cases/GetAuctionUseCase.js";
@@ -40,6 +41,7 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const app = express();
 
   app.use(express.json({ limit: "100kb" }));
+  app.use("/web", express.static(fileURLToPath(new URL("../../web/", import.meta.url))));
 
   const auctionRepository = new SqliteAuctionRepository(database);
   const idGenerator = new RandomIdGenerator();
