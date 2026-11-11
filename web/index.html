@@ -135,7 +135,12 @@
             <button class="text-button" id="refresh-payment" type="button">Actualizar estado del pago</button>
           </section>
           <div id="auction-detail-content"></div>
-          <button id="edit-publication" type="button" hidden>Editar publicación</button>
+          <div class="seller-actions">
+            <button id="edit-publication" type="button" hidden>Editar publicación</button>
+            <form id="cancel-auction" hidden>
+              <button type="submit">Cancelar subasta</button>
+            </form>
+          </div>
           <form id="bid-form" novalidate hidden>
             <label for="bid-amount">Tu oferta (COP)</label>
             <input id="bid-amount" name="amount" type="number" min="1" step="1" aria-describedby="bid-minimum bid-feedback" required>

@@ -17,6 +17,9 @@ const date = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: 
 const paymentStates = { PENDING: "Pendiente", CONFIRMED: "Confirmada", EXPIRED: "Vencida" };
 
 const operationErrors = new Map([
+  ["Only the auction seller can cancel the auction", "Solo el vendedor puede cancelar la subasta."],
+  ["Only open auctions can be cancelled", "La subasta ya no está abierta para cancelación."],
+  ["Auction with bids cannot be cancelled", "La subasta ya recibió una puja y no se puede cancelar."],
   ["Only the auction seller can edit the publication", "Solo el vendedor puede editar la publicación."],
   ["Only open auctions can be edited", "La subasta ya no está abierta para edición."],
   ["Auction with bids cannot be edited", "La subasta ya recibió una puja y no se puede editar."],
@@ -93,6 +96,7 @@ export function setupAuctions(request, onExpired) {
   const publicationTerms = document.querySelector("#publication-terms");
   const publicationHeading = document.querySelector("#publication-heading");
   const editPublication = document.querySelector("#edit-publication");
+  const cancelAuction = document.querySelector("#cancel-auction");
   const photoInput = document.querySelector("#auction-photo");
   const photoPreview = document.querySelector("#photo-preview");
   const bidForm = document.querySelector("#bid-form");
@@ -315,6 +319,7 @@ export function setupAuctions(request, onExpired) {
     bidForm.hidden = auction.status !== "OPEN" || auction.sellerId === userId || leading;
     editPublication.hidden = auction.sellerId !== userId || auction.status !== "OPEN"
       || auction.bids.length > 0 || Date.parse(auction.closesAt) <= Date.now();
+    cancelAuction.hidden = editPublication.hidden;
     if ((auction.status === "CLOSED" || auction.status === "DEFAULTED")
       && auction.bids.at(-1)?.bidderId === userId && paymentAuctionId !== auction.id) {
       paymentAuctionId = auction.id;
@@ -359,6 +364,7 @@ export function setupAuctions(request, onExpired) {
     detailContent.replaceChildren();
     bidForm.hidden = true;
     editPublication.hidden = true;
+    cancelAuction.hidden = true;
     currentAuction = undefined;
     return load(`/auctions/${encodeURIComponent(id)}`, (auction) => {
       renderDetail(auction);
@@ -447,7 +453,7 @@ export function setupAuctions(request, onExpired) {
   }
 
   async function submitOperation(form, path, body, onSuccess, fallback, { method = "POST", onError } = {}) {
-    const controls = [form.querySelector('button[type="submit"]'), backToProfile, backToList, cancelPublication];
+    const controls = [form.querySelector('button[type="submit"]'), backToProfile, backToList, cancelPublication, editPublication];
     submitting = true;
     controls.forEach((control) => { control.disabled = true; });
     message.textContent = "Enviando…";
@@ -508,6 +514,16 @@ export function setupAuctions(request, onExpired) {
 
   document.querySelector("#open-publication").addEventListener("click", () => openPublication());
   editPublication.addEventListener("click", () => openPublication(currentAuction));
+  cancelAuction.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (submitting || !currentAuction || cancelAuction.hidden) return;
+    if (!window.confirm(`¿Cancelar la subasta «${currentAuction.itemId}»? Esta acción es definitiva.`)) return;
+    submitOperation(cancelAuction, `/auctions/${encodeURIComponent(currentAuction.id)}`, undefined, (auction) => {
+      renderDetail(auction, true);
+      message.textContent = "Subasta cancelada.";
+      document.querySelector("#auction-detail-heading").focus();
+    }, "No pudimos cancelar la subasta. Comprueba su estado antes de reintentar.", { method: "DELETE" });
+  });
   cancelPublication.addEventListener("click", () => {
     publicationForm.reset();
     clearPreview();
