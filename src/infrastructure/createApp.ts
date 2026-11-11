@@ -140,7 +140,10 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   app.use(
     "/auctions",
     createPaymentOrderRouter(
-      new PaymentOrderController(new GetPaymentOrderUseCase(auctionRepository)),
+      new PaymentOrderController(
+        new GetPaymentOrderUseCase(auctionRepository),
+        process.env.PAYMENT_SIMULATION_ENABLED === "true" ? process.env.PAYMENT_WEBHOOK_SECRET : undefined,
+      ),
       authenticate,
     ),
   );

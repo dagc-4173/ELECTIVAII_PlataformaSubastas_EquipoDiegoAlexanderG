@@ -31,13 +31,15 @@ npm start
 3. Abrir la misma subasta en las tres ventanas y comprobar el indicador **En vivo**. Desde el primer postor, ofrecer COP 100.000. El vendedor y el segundo postor deben ver el nuevo monto y la puja sin recargar.
 4. Desde el segundo postor, enviar COP 102.000. Mostrar el motivo del rechazo y corregir a COP 105.000. El primer postor debe recibir el aviso de que lo superaron.
 5. Al llegar la hora de cierre, las vistas abiertas deben mostrar **Cerrada** y el ganador debe ver **Orden de pago**. El servidor también ejecuta el cierre con las pestañas cerradas. En ese caso, volver a abrir el detalle para consultar el resultado.
-6. Copiar el identificador de la orden ganadora. En otra terminal, desde la raíz del repositorio, ejecutar el comando siguiente, reemplazando el identificador de ejemplo por el que muestra el detalle.
+6. Para completar el pago desde la página, configurar `PAYMENT_SIMULATION_ENABLED=true` en `.env` antes de iniciar el servidor. Desde la cuenta ganadora, pulsar **Simular pago** y comprobar que la orden pasa a **Confirmada**.
+
+Para demostrar el reenvío idempotente con otra orden pendiente, copiar su identificador y ejecutar desde la raíz del repositorio:
 
 ```powershell
 node scripts/simulate-payment.mjs "identificador-de-la-orden" SUCCESS
 ```
 
-7. Mostrar las dos respuestas HTTP 200 idénticas con `outcome: "CONFIRMED"`. Con **En vivo** activo, comprobar que la orden cambia a **Confirmada**. El botón **Actualizar estado del pago** permite consultar manualmente.
+Las dos respuestas HTTP 200 deben ser idénticas y mostrar `outcome: "CONFIRMED"`. Con **En vivo** activo, la orden se actualiza en la página. El botón **Actualizar estado del pago** permite consultar manualmente.
 
 ## Verificación sin esperar el cierre
 

@@ -178,6 +178,32 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /auctions/{auctionId}/payment-order/simulate:
+    post:
+      tags: [Auctions]
+      summary: Simular el pago desde la cuenta ganadora
+      description: Disponible en modo de demostración y únicamente desde una conexión local.
+      operationId: simulateAuctionPayment
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: auctionId
+        in: path
+        required: true
+        schema: {type: string}
+      responses:
+        '204':
+          description: Pago de prueba confirmado mediante el webhook firmado
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          description: La cuenta autenticada no es la ganadora
+        '404':
+          description: La orden o el simulador local no están disponibles
+        '409':
+          description: La orden no está pendiente dentro del plazo
+        '502':
+          description: El webhook no aceptó la simulación
   /users/me:
     get:
       tags:
@@ -787,6 +813,9 @@ components:
       - createdAt
       - dueAt
       properties:
+        canSimulatePayment:
+          type: boolean
+          description: Disponible para una orden pendiente en el modo de demostración local.
         id:
           type: string
         auctionId:

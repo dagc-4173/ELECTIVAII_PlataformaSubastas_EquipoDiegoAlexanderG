@@ -94,6 +94,7 @@ export function setupAuctions(request, onExpired) {
   const paymentSummary = document.querySelector("#payment-summary");
   const paymentFeedback = document.querySelector("#payment-feedback");
   const refreshPayment = document.querySelector("#refresh-payment");
+  const simulatePayment = document.querySelector("#simulate-payment");
   const publication = document.querySelector("#auction-publication");
   const publicationForm = document.querySelector("#publication-form");
   const publicationTerms = document.querySelector("#publication-terms");
@@ -120,13 +121,18 @@ export function setupAuctions(request, onExpired) {
   let stopLive;
   let paymentRequest;
   let paymentAuctionId;
+  let simulation;
 
   function clearPayment() {
     paymentRequest?.abort();
+    simulation?.abort();
+    simulation = undefined;
     paymentAuctionId = undefined;
     payment.hidden = true;
     paymentSummary.replaceChildren();
     paymentFeedback.textContent = "";
+    simulatePayment.hidden = true;
+    simulatePayment.disabled = false;
   }
 
   async function loadPayment() {
@@ -151,7 +157,10 @@ export function setupAuctions(request, onExpired) {
         fields.append(element("dt", label), element("dd", value));
       }
       paymentSummary.replaceChildren(fields);
-      paymentFeedback.textContent = "Estado del pago actualizado.";
+      simulatePayment.hidden = !order.canSimulatePayment;
+      paymentFeedback.textContent = order.status === "PENDING"
+        ? (order.canSimulatePayment ? "Puedes confirmar esta orden con un pago de prueba." : "La orden espera la confirmación del pago.")
+        : "Estado del pago actualizado.";
       if (order.status === "EXPIRED" && currentAuction.status === "CLOSED") {
         renderDetail({ ...currentAuction, status: "DEFAULTED" }, true);
       }
@@ -166,6 +175,32 @@ export function setupAuctions(request, onExpired) {
   }
 
   refreshPayment.addEventListener("click", loadPayment);
+  simulatePayment.addEventListener("click", async () => {
+    if (simulation || !paymentAuctionId || simulatePayment.hidden) return;
+    if (!window.confirm("¿Simular el pago de esta orden? No se realizará ningún cobro.")) return;
+    const controller = new AbortController();
+    simulation = controller;
+    simulatePayment.disabled = true;
+    paymentFeedback.textContent = "Enviando el pago de prueba…";
+    try {
+      await request(`/auctions/${encodeURIComponent(paymentAuctionId)}/payment-order/simulate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${sessionToken}` },
+        signal: controller.signal,
+      });
+      if (!controller.signal.aborted) await loadPayment();
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      if (error.statusCode === 401) onExpired();
+      else if (error.statusCode === 409) await loadPayment();
+      else paymentFeedback.textContent = "No pudimos confirmar el pago de prueba. Consulta el estado antes de reintentar.";
+    } finally {
+      if (simulation === controller) {
+        simulation = undefined;
+        simulatePayment.disabled = false;
+      }
+    }
+  });
 
   function leaveLiveDetail() {
     stopLive?.();

@@ -15,10 +15,11 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-async function fixture() {
+async function fixture(simulation = false) {
   vi.stubEnv("JWT_SECRET", "payment-webhook-test-jwt-secret-at-least-32");
   vi.stubEnv("JWT_EXPIRES_IN_SECONDS", "7200");
   vi.stubEnv("PAYMENT_WEBHOOK_SECRET", secret);
+  vi.stubEnv("PAYMENT_SIMULATION_ENABLED", String(simulation));
   vi.setSystemTime(publishedAt);
   const runtime = createApp(":memory:");
   close = runtime.close;
@@ -58,7 +59,7 @@ async function fixture() {
   function event(eventId: string, result = "SUCCESS") {
     return JSON.stringify({ eventId, paymentOrderId: initialOrder.id, result, occurredAt: new Date().toISOString() });
   }
-  return { notify, event, order, dueAt: initialOrder.dueAt, expire: runtime.expirePendingPayments, http };
+  return { notify, event, order, dueAt: initialOrder.dueAt, expire: runtime.expirePendingPayments, http, seller, bidder };
 }
 
 it("rejects an invalid signature without changing the order or consuming the event ID", async () => {
@@ -111,4 +112,26 @@ it("preserves a confirmed order after its deadline", async () => {
   vi.setSystemTime(new Date(dueAt));
   expect(expire.execute()).toBe(0);
   expect((await order()).status).toBe("CONFIRMED");
+});
+
+it("allows only the winner to simulate a pending payment in local demo mode", async () => {
+  const { http, seller, bidder, order } = await fixture(true);
+  const route = "/auctions/auction-1/payment-order/simulate";
+  expect((await order()).canSimulatePayment).toBe(true);
+  await http.post(route).expect(401);
+  await http.post(route).set("Authorization", `Bearer ${seller}`).expect(403);
+  expect((await order()).status).toBe("PENDING");
+  await http.post(route).set("Authorization", `Bearer ${bidder}`).expect(204);
+  const confirmed = await order();
+  expect(confirmed.status).toBe("CONFIRMED");
+  expect(confirmed).not.toHaveProperty("canSimulatePayment");
+  await http.post(route).set("Authorization", `Bearer ${bidder}`).expect(409);
+});
+
+it("keeps the browser simulator disabled by default", async () => {
+  const { http, bidder, order } = await fixture();
+  expect(await order()).not.toHaveProperty("canSimulatePayment");
+  await http.post("/auctions/auction-1/payment-order/simulate")
+    .set("Authorization", `Bearer ${bidder}`).expect(404);
+  expect((await order()).status).toBe("PENDING");
 });

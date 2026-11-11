@@ -9,5 +9,6 @@ export function createPaymentOrderRouter(
 ): Router {
   const router = Router();
   router.get("/:auctionId/payment-order", authenticate, validateAuctionParams, controller.get);
+  router.post("/:auctionId/payment-order/simulate", authenticate, validateAuctionParams, controller.simulate);
   return router;
 }

@@ -51,7 +51,9 @@ En el detalle, el vendedor puede elegir **Editar publicación** mientras la suba
 
 ### Demostración de confirmación del pago
 
-Configurar `PAYMENT_WEBHOOK_SECRET` en `.env` con un valor aleatorio de al menos 32 caracteres y reiniciar el servidor. Después del cierre, abrir el detalle con la cuenta ganadora y copiar el identificador de **Orden de pago**. La orden también se puede consultar con el token del ganador en `GET /auctions/{auctionId}/payment-order`. Ejecutar desde el repositorio:
+Configurar `PAYMENT_WEBHOOK_SECRET` en `.env` con un valor aleatorio de al menos 32 caracteres y reiniciar el servidor. Para simular el pago desde la página en localhost, establecer también `PAYMENT_SIMULATION_ENABLED=true`. Después del cierre, abrir el detalle con la cuenta ganadora y elegir **Simular pago** en una orden pendiente. La acción utiliza el webhook firmado y no realiza cobros.
+
+Para comprobar los reenvíos desde la terminal, copiar el identificador de **Orden de pago** y ejecutar desde el repositorio:
 
 ```powershell
 node scripts/simulate-payment.mjs <id-de-la-orden> SUCCESS
