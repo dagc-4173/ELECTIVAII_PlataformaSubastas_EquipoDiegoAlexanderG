@@ -400,14 +400,18 @@ export function setupAuctions(request, onExpired) {
   function makeCard(auction, token, note) {
     const card = element("li", "");
     card.className = "auction-card";
+    const badge = element("span", states[auction.status] ?? auction.status);
+    badge.className = "auction-state";
+    badge.dataset.state = auction.status;
     const open = element("button", "Ver detalle");
     open.type = "button";
     open.setAttribute("aria-label", `Ver detalle de ${auction.itemId}`);
     open.addEventListener("click", () => showDetail(auction.id, token));
     card.append(
+      badge,
       auctionPhoto(auction),
       element("h2", auction.itemId),
-      element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
+      element("p", `Categoría: ${auction.categoryId}`),
       element("p", amount(auction)),
     );
     if (note) card.append(element("p", note));

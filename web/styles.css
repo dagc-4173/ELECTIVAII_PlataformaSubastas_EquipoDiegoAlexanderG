@@ -78,6 +78,15 @@ button:disabled { opacity: 0.7; cursor: wait; }
 
 #profile-email { overflow-wrap: anywhere; }
 
+.profile-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.profile-actions button { width: 100%; }
+
 #status { line-height: 1.5; }
 
 #status:empty { margin: 0; }
@@ -120,6 +129,30 @@ main:has(#auctions:not([hidden])) {
 }
 
 .auction-card h2, #auction-detail h1 { overflow-wrap: anywhere; }
+
+.auction-state {
+  display: table;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid #d7dcd2;
+  border-radius: 1rem;
+  background: #eceee8;
+  color: #37423c;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.auction-state[data-state="OPEN"] {
+  border-color: #b5d5bf;
+  background: #e4f3e8;
+  color: #214b32;
+}
+
+.auction-state[data-state="CLOSED"] {
+  border-color: #dbc8ae;
+  background: #f5ecdf;
+  color: #654523;
+}
 
 .auction-pagination:not([hidden]) {
   display: flex;
