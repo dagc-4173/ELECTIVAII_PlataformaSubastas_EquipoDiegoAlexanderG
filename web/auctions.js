@@ -38,6 +38,26 @@ function amount(auction) {
     : `Oferta vigente: ${money.format(auction.currentBidAmount)}`;
 }
 
+function auctionPhoto(auction) {
+  const image = document.createElement("img");
+  image.className = "auction-photo";
+  image.alt = `Foto de ${auction.itemId}`;
+  image.hidden = true;
+  image.addEventListener("load", () => { image.hidden = false; }, { once: true });
+  image.addEventListener("error", () => image.remove(), { once: true });
+  image.src = `/auctions/${encodeURIComponent(auction.id)}/photo`;
+  return image;
+}
+
+function readPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result), { once: true });
+    reader.addEventListener("error", () => reject(reader.error), { once: true });
+    reader.readAsDataURL(file);
+  });
+}
+
 export function setupAuctions(request, onExpired) {
   const view = document.querySelector("#auctions");
   const listing = document.querySelector("#auction-list");
@@ -51,6 +71,8 @@ export function setupAuctions(request, onExpired) {
   const detailContent = document.querySelector("#auction-detail-content");
   const publication = document.querySelector("#auction-publication");
   const publicationForm = document.querySelector("#publication-form");
+  const photoInput = document.querySelector("#auction-photo");
+  const photoPreview = document.querySelector("#photo-preview");
   const bidForm = document.querySelector("#bid-form");
   const backToProfile = document.querySelector("#back-to-profile");
   const backToList = document.querySelector("#back-to-auctions");
@@ -61,6 +83,30 @@ export function setupAuctions(request, onExpired) {
   let sessionToken;
   let userId;
   let submitting = false;
+  let previewUrl;
+
+  function clearPreview() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = undefined;
+    photoPreview.hidden = true;
+    photoPreview.removeAttribute("src");
+  }
+
+  photoInput.addEventListener("change", () => {
+    clearPreview();
+    message.textContent = "";
+    const file = photoInput.files[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)
+      || file.size === 0 || file.size > 2 * 1024 * 1024) {
+      photoInput.value = "";
+      message.textContent = "Selecciona una foto JPEG, PNG o WebP de hasta 2 MB.";
+      return;
+    }
+    previewUrl = URL.createObjectURL(file);
+    photoPreview.src = previewUrl;
+    photoPreview.hidden = false;
+  });
 
   async function load(path, render, fallback, token) {
     active?.abort();
@@ -93,6 +139,7 @@ export function setupAuctions(request, onExpired) {
       history.append(element("li", `${money.format(bid.amount)} · ${date.format(new Date(bid.placedAt))}`));
     }
     detailContent.replaceChildren(
+      auctionPhoto(auction),
       element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
       element("p", amount(auction)),
       element("p", `Incremento mínimo: ${money.format(auction.minimumIncrement)}`),
@@ -153,6 +200,7 @@ export function setupAuctions(request, onExpired) {
         open.setAttribute("aria-label", `Ver detalle de ${auction.itemId}`);
         open.addEventListener("click", () => showDetail(auction.id, token));
         card.append(
+          auctionPhoto(auction),
           element("h2", auction.itemId),
           element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
           element("p", amount(auction)),
@@ -176,12 +224,16 @@ export function setupAuctions(request, onExpired) {
       const result = await request(path, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
-        body: JSON.stringify(body),
+        body: JSON.stringify(await (typeof body === "function" ? body() : body)),
       });
       onSuccess(result);
     } catch (error) {
       if (error.statusCode === 401) {
         onExpired();
+      } else if (error.details?.code === "INVALID_PHOTO") {
+        message.textContent = "La foto debe ser un archivo JPEG, PNG o WebP válido.";
+      } else if (error.statusCode === 413) {
+        message.textContent = "La foto supera el límite de 2 MB.";
       } else if (error.statusCode === 409) {
         message.textContent = "La subasta cambió. Vuelve al listado y abre el detalle antes de reintentar.";
       } else {
@@ -200,7 +252,11 @@ export function setupAuctions(request, onExpired) {
     message.textContent = "";
     document.querySelector("#publication-heading").focus();
   });
-  cancelPublication.addEventListener("click", () => showList(sessionToken, true));
+  cancelPublication.addEventListener("click", () => {
+    publicationForm.reset();
+    clearPreview();
+    showList(sessionToken, true);
+  });
 
   publicationForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -217,7 +273,8 @@ export function setupAuctions(request, onExpired) {
       return;
     }
 
-    submitOperation(publicationForm, "/auctions", {
+    const file = photoInput.files[0];
+    submitOperation(publicationForm, "/auctions", async () => ({
       auctionId: crypto.randomUUID(),
       itemId,
       categoryId,
@@ -225,8 +282,10 @@ export function setupAuctions(request, onExpired) {
       minimumIncrement,
       publishedAt: new Date().toISOString(),
       closesAt: closesAt.toISOString(),
-    }, (auction) => {
+      ...(file && { photo: await readPhoto(file) }),
+    }), (auction) => {
       publicationForm.reset();
+      clearPreview();
       filters.reset();
       page = 1;
       openDetail();
@@ -285,6 +344,7 @@ export function setupAuctions(request, onExpired) {
       page = 1;
       filters.reset();
       publicationForm.reset();
+      clearPreview();
       bidForm.reset();
     },
   };

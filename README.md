@@ -34,6 +34,8 @@ Desde **Mi perfil**, elegir **Ver subastas** para consultar el listado, filtrar 
 
 En el listado, elegir **Publicar subasta** y completar el artículo, la categoría, los valores en pesos y la fecha de cierre. Para ofertar, entrar con otra cuenta, abrir la subasta y enviar el monto desde el detalle. Cuando la API acepta la oferta, el detalle muestra el nuevo valor y actualiza el historial.
 
+Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
+
 ## Alcance de la Entrega 1
 
 La primera entrega se concentra en:
@@ -445,7 +447,7 @@ Este comando compila, crea una base temporal, guarda usuarios y una subasta adju
 
 # API REST
 
-La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`. El límite del cuerpo JSON es 100 KiB.
+La API está diseñada alrededor de recursos. La URL base local es `http://localhost:3000`; las peticiones con cuerpo deben enviar `Content-Type: application/json`. El límite del cuerpo JSON es 100 KiB, excepto en `POST /auctions`, que admite hasta 3 MiB para incluir el campo opcional `photo` como URL de datos en Base64. La foto se consulta en `GET /auctions/{auctionId}/photo`.
 
 | Método | Ruta | Acceso | Resultado exitoso |
 |---|---|---|---|
@@ -707,7 +709,8 @@ Entre los principales códigos utilizados se encuentran:
 | 404 | `RESOURCE_NOT_FOUND` | Subasta inexistente al pujar/cancelar o al consultar su orden; orden o usuario inexistente |
 | 404 | `ROUTE_NOT_FOUND` | Ruta u operación HTTP no implementada |
 | 409 | `CONCURRENT_MODIFICATION` | Otra operación guardó la subasta; recargar antes de reintentar |
-| 413 | `PAYLOAD_TOO_LARGE` | Cuerpo JSON mayor de 100 KiB |
+| 413 | `PAYLOAD_TOO_LARGE` | Cuerpo JSON por encima del límite de la ruta |
+| 413 | `PHOTO_TOO_LARGE` | Foto mayor de 2 MiB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Tipo de contenido, charset o codificación no admitidos |
 | 500 | `INTERNAL_SERVER_ERROR` | Error inesperado |
 

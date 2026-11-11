@@ -6,6 +6,7 @@ import type { ListAuctionsUseCase } from "../../../application/use-cases/ListAuc
 import type { CancelAuctionUseCase } from "../../../application/use-cases/CancelAuctionUseCase.js";
 import type { PlaceBidUseCase } from "../../../application/use-cases/PlaceBidUseCase.js";
 import { AuctionResponseMapper } from "../mappers/AuctionResponseMapper.js";
+import { parseAuctionPhoto } from "../auctionPhoto.js";
 
 interface PublishAuctionBody {
   auctionId: string;
@@ -15,6 +16,7 @@ interface PublishAuctionBody {
   minimumIncrement: number;
   publishedAt: string;
   closesAt: string;
+  photo?: string;
 }
 
 interface AuctionParams {
@@ -56,7 +58,7 @@ export class AuctionController {
       minimumIncrement: request.body.minimumIncrement,
       publishedAt: new Date(request.body.publishedAt),
       closesAt: new Date(request.body.closesAt),
-    });
+    }, parseAuctionPhoto(request.body.photo));
 
     console.log(`Auction published: ${auction.id.value}`);
 

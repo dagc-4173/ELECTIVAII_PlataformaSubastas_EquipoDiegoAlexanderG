@@ -1,5 +1,5 @@
 import { Auction } from "../../domain/entities/Auction.js";
-import type { AuctionRepository } from "../../domain/ports/AuctionRepository.js";
+import type { AuctionPhoto, AuctionRepository } from "../../domain/ports/AuctionRepository.js";
 import { AuctionId } from "../../domain/value-objects/AuctionId.js";
 import { AuctionPublicationData } from "../../domain/value-objects/AuctionPublicationData.js";
 import { CategoryId } from "../../domain/value-objects/CategoryId.js";
@@ -25,7 +25,7 @@ export class PublishAuctionUseCase {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async execute(input: PublishAuctionInput): Promise<Auction> {
+  async execute(input: PublishAuctionInput, photo?: AuctionPhoto): Promise<Auction> {
     const auctionId = AuctionId.create(input.auctionId);
 
     const existingAuction = await this.auctionRepository.findById(auctionId);
@@ -51,7 +51,7 @@ export class PublishAuctionUseCase {
       publicationData,
     );
 
-    await this.auctionRepository.save(auction);
+    await this.auctionRepository.save(auction, photo);
 
     return auction;
   }

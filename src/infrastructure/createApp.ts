@@ -40,10 +40,26 @@ export function createApp(databasePath = process.env.DATABASE_PATH ?? "./data/au
   const database = openDatabase(databasePath);
   const app = express();
 
-  app.use(express.json({ limit: "100kb" }));
+  const json = express.json({ limit: "100kb" });
+  const publicationJson = express.json({ limit: "3mb" });
+  app.use((request, response, next) => {
+    const parse = request.method === "POST" && /^\/auctions\/?$/i.test(request.path)
+      ? publicationJson
+      : json;
+    parse(request, response, next);
+  });
   app.use("/web", express.static(fileURLToPath(new URL("../../web/", import.meta.url))));
 
   const auctionRepository = new SqliteAuctionRepository(database);
+  app.get("/auctions/:auctionId/photo", (request, response) => {
+    const photo = auctionRepository.findPhoto(request.params.auctionId);
+    if (typeof photo?.photo_type !== "string" || !(photo.photo_bytes instanceof Uint8Array)) {
+      response.sendStatus(404);
+      return;
+    }
+    response.set("X-Content-Type-Options", "nosniff");
+    response.type(photo.photo_type).send(Buffer.from(photo.photo_bytes));
+  });
   const idGenerator = new RandomIdGenerator();
   const userRepository = new SqliteUserRepository(database);
   const realtime = new WebSocketAuctionEventPublisher(tokenService, userRepository, auctionRepository);

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { AuctionRepository } from "../../../domain/ports/AuctionRepository.js";
+import type { AuctionPhoto, AuctionRepository } from "../../../domain/ports/AuctionRepository.js";
 import type { Auction } from "../../../domain/entities/Auction.js";
 import type { AuctionId } from "../../../domain/value-objects/AuctionId.js";
 import { ApiError } from "../../http/errors/ApiError.js";
@@ -11,12 +11,13 @@ export class SqliteAuctionRepository implements AuctionRepository {
 
   constructor(private readonly db: DatabaseSync) {}
 
-  async save(auction: Auction): Promise<void> {
+  async save(auction: Auction, photo?: AuctionPhoto): Promise<void> {
     const document = serializeAuction(auction);
     const revision = this.revisions.get(auction);
     if (revision === undefined) {
-      const inserted = this.db.prepare("INSERT INTO auctions(id, document) VALUES (?, ?) ON CONFLICT(id) DO NOTHING")
-        .run(auction.id.value, document);
+      const inserted = this.db.prepare(
+        "INSERT INTO auctions(id, document, photo_type, photo_bytes) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO NOTHING",
+      ).run(auction.id.value, document, photo?.contentType ?? null, photo?.bytes ?? null);
       if (inserted.changes === 0) throw new BusinessRuleViolationError("Auction ID is already registered");
       this.revisions.set(auction, 0);
       return;
@@ -27,6 +28,12 @@ export class SqliteAuctionRepository implements AuctionRepository {
       throw new ApiError(409, "CONCURRENT_MODIFICATION", "Auction changed; reload and retry the operation");
     }
     this.revisions.set(auction, revision + 1);
+  }
+
+  findPhoto(id: string) {
+    return this.db.prepare(
+      "SELECT photo_type, photo_bytes FROM auctions WHERE id = ? AND photo_bytes IS NOT NULL",
+    ).get(id);
   }
 
   async findById(id: AuctionId): Promise<Auction | null> {

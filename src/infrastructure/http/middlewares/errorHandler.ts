@@ -21,7 +21,7 @@ export const errorHandler: ErrorRequestHandler = (
   if (typeof error === "object" && error !== null && "type" in error) {
     const parserErrors: Record<string, { status: number; code: string; message: string }> = {
       "entity.parse.failed": { status: 400, code: "INVALID_JSON", message: "Malformed JSON body" },
-      "entity.too.large": { status: 413, code: "PAYLOAD_TOO_LARGE", message: "JSON body exceeds the 100 KiB limit" },
+      "entity.too.large": { status: 413, code: "PAYLOAD_TOO_LARGE", message: "JSON body exceeds the size limit" },
       "charset.unsupported": { status: 415, code: "UNSUPPORTED_MEDIA_TYPE", message: "Unsupported JSON charset" },
       "encoding.unsupported": { status: 415, code: "UNSUPPORTED_MEDIA_TYPE", message: "Unsupported content encoding" },
       "request.aborted": { status: 400, code: "INVALID_REQUEST", message: "Request body was interrupted" },

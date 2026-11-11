@@ -76,6 +76,10 @@
             <input id="item" name="itemId" required>
             <label for="category">Categoría</label>
             <input id="category" name="categoryId" required>
+            <label for="auction-photo">Foto del artículo (opcional)</label>
+            <input id="auction-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-formats">
+            <small id="photo-formats">JPEG, PNG o WebP, hasta 2 MB.</small>
+            <img id="photo-preview" class="auction-photo" alt="Vista previa de la foto" hidden>
             <label for="base-price">Precio base (COP)</label>
             <input id="base-price" name="basePrice" type="number" min="1" step="1" required>
             <label for="minimum-increment">Incremento mínimo (COP)</label>

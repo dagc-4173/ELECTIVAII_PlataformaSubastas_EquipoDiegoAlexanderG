@@ -124,6 +124,16 @@ main:has(#auctions:not([hidden])) {
 
 #auction-detail, #auction-publication { max-width: 42rem; }
 
+.auction-photo {
+  width: 100%;
+  max-height: 28rem;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  background: #f4f3ed;
+}
+
+.auction-card .auction-photo { max-height: 12rem; }
+
 #open-publication { margin-bottom: 1rem; }
 
 #bid-form { margin-top: 1.5rem; }
