@@ -76,6 +76,8 @@ button:disabled { opacity: 0.7; cursor: wait; }
 
 #profile-name { font-size: 1.15rem; overflow-wrap: anywhere; }
 
+#profile-email { overflow-wrap: anywhere; }
+
 #status { line-height: 1.5; }
 
 #status:empty { margin: 0; }

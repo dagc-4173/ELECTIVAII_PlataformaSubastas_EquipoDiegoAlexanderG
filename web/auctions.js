@@ -158,7 +158,11 @@ export function setupAuctions(request, onExpired) {
       ? auction.basePrice
       : auction.currentBidAmount + auction.minimumIncrement;
     document.querySelector("#bid-minimum").textContent = `Próxima oferta mínima: ${money.format(minimum)}`;
-    bidForm.hidden = auction.status !== "OPEN" || auction.sellerId === userId;
+    const leading = auction.status === "OPEN" && auction.bids.at(-1)?.bidderId === userId;
+    if (leading) {
+      detailContent.append(element("p", "Tu cuenta tiene la oferta más alta. Podrás volver a ofertar cuando otro postor la supere."));
+    }
+    bidForm.hidden = auction.status !== "OPEN" || auction.sellerId === userId || leading;
     editPublication.hidden = auction.sellerId !== userId || auction.status !== "OPEN"
       || auction.bids.length > 0 || Date.parse(auction.closesAt) <= Date.now();
   }

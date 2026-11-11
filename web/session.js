@@ -44,6 +44,7 @@ function showLogin(message = "", focus = false) {
   reset.hidden = true;
   profile.hidden = true;
   document.querySelector("#profile-name").textContent = "";
+  document.querySelector("#profile-email").textContent = "";
   login.hidden = false;
   status.textContent = message;
   if (focus) document.querySelector("#login-heading").focus();
@@ -55,6 +56,7 @@ async function showProfile(token) {
   });
   userId = user.id;
   document.querySelector("#profile-name").textContent = user.name;
+  document.querySelector("#profile-email").textContent = user.email;
   login.hidden = true;
   profile.hidden = false;
   status.textContent = "";
