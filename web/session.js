@@ -1,3 +1,5 @@
+import { setupAuctions } from "./auctions.js";
+
 const tokenKey = "subastas.accessToken";
 const login = document.querySelector("#login");
 const profile = document.querySelector("#profile");
@@ -30,6 +32,7 @@ async function request(path, options) {
 }
 
 function showLogin(message = "", focus = false) {
+  auctions.close();
   registration.hidden = true;
   profile.hidden = true;
   document.querySelector("#profile-name").textContent = "";
@@ -160,6 +163,23 @@ registrationForm.addEventListener("submit", async (event) => {
 });
 
 retry.addEventListener("click", restoreSession);
+
+const auctions = setupAuctions(request, () => {
+  sessionStorage.removeItem(tokenKey);
+  showLogin("Tu sesión venció o dejó de ser válida. Inicia sesión de nuevo.", true);
+});
+
+document.querySelector("#open-auctions").addEventListener("click", () => {
+  profile.hidden = true;
+  auctions.open(sessionStorage.getItem(tokenKey));
+});
+
+document.querySelector("#back-to-profile").addEventListener("click", () => {
+  auctions.close();
+  profile.hidden = false;
+  document.querySelector("#profile-heading").focus();
+});
+
 document.querySelector("#logout").addEventListener("click", () => {
   sessionStorage.removeItem(tokenKey);
   showLogin("Sesión cerrada.", true);

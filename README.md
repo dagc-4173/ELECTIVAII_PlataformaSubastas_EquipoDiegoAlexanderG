@@ -30,6 +30,8 @@ Después de compilar e iniciar el servidor, abrir [la aplicación web local](htt
 
 Ingresar con el correo y la contraseña de esa cuenta. La vista de perfil muestra el nombre devuelto por la API. Recargar la página conserva la sesión en la misma pestaña mientras el token sea válido. El botón **Cerrar sesión** elimina la sesión de la pestaña.
 
+Desde **Mi perfil**, elegir **Ver subastas** para consultar el listado, filtrar por identificador de categoría o estado y abrir el detalle con el historial de pujas aceptadas.
+
 ## Alcance de la Entrega 1
 
 La primera entrega se concentra en:

@@ -37,7 +37,42 @@
       <section class="card" aria-labelledby="profile-heading" id="profile" hidden>
         <h1 id="profile-heading" tabindex="-1">Mi perfil</h1>
         <p id="profile-name"></p>
+        <button id="open-auctions" type="button">Ver subastas</button>
         <button id="logout" type="button">Cerrar sesión</button>
+      </section>
+      <section id="auctions" hidden>
+        <button class="text-button" id="back-to-profile" type="button">Mi perfil</button>
+        <section id="auction-list" aria-labelledby="auctions-heading">
+          <h1 id="auctions-heading" tabindex="-1">Subastas</h1>
+          <form id="auction-filters" class="auction-filters">
+            <label for="filter-category">Categoría
+              <input id="filter-category" name="categoryId">
+            </label>
+            <label for="filter-state">Estado
+              <select id="filter-state" name="status">
+                <option value="">Todos</option>
+                <option value="OPEN">Abiertas</option>
+                <option value="CLOSED">Cerradas</option>
+                <option value="CANCELLED">Canceladas</option>
+                <option value="DESERTED">Desiertas</option>
+                <option value="DEFAULTED">Incumplidas</option>
+              </select>
+            </label>
+            <button type="submit">Buscar</button>
+          </form>
+          <ul id="auction-cards" class="auction-cards"></ul>
+          <nav id="auction-pagination" class="auction-pagination" aria-label="Páginas de subastas" hidden>
+            <button type="button" id="previous-page">Anterior</button>
+            <span id="auction-page"></span>
+            <button type="button" id="next-page">Siguiente</button>
+          </nav>
+        </section>
+        <section class="card" id="auction-detail" aria-labelledby="auction-detail-heading" hidden>
+          <button class="text-button" id="back-to-auctions" type="button">Volver a subastas</button>
+          <h1 id="auction-detail-heading" tabindex="-1">Detalle de subasta</h1>
+          <div id="auction-detail-content"></div>
+        </section>
+        <p id="auction-status" role="status"></p>
       </section>
       <p id="status" role="status">Comprobando sesión…</p>
       <button id="retry" type="button" hidden>Reintentar</button>
