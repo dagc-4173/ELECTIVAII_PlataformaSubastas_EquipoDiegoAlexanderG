@@ -24,7 +24,7 @@ export function connectAuction(auctionId, token, { onMessage, onConnection, onEx
           delay = 1000;
           onConnection(true);
         }
-        onMessage(event.type);
+        onMessage(event);
       }
     });
     socket.addEventListener("close", () => {

@@ -30,14 +30,14 @@ npm start
 2. Como vendedor, abrir **Ver subastas → Publicar subasta**. Usar, por ejemplo, COP 100.000 de precio base y COP 5.000 de incremento. Preparar el cierre con anticipación, porque la duración mínima es de una hora.
 3. Abrir la misma subasta en las tres ventanas y comprobar el indicador **En vivo**. Desde el primer postor, ofrecer COP 100.000. El vendedor y el segundo postor deben ver el nuevo monto y la puja sin recargar.
 4. Desde el segundo postor, enviar COP 102.000. Mostrar el motivo del rechazo y corregir a COP 105.000. El primer postor debe recibir el aviso de que lo superaron.
-5. Dejar el detalle abierto hasta la hora de cierre. Las vistas deben mostrar **Cerrada** y el ganador debe ver **Orden de pago** con el monto, la fecha límite y el identificador. Si el detalle estaba cerrado, volver a abrirlo para activar la comprobación del vencimiento.
+5. Al llegar la hora de cierre, las vistas abiertas deben mostrar **Cerrada** y el ganador debe ver **Orden de pago**. El servidor también ejecuta el cierre con las pestañas cerradas. En ese caso, volver a abrir el detalle para consultar el resultado.
 6. Copiar el identificador de la orden ganadora. En otra terminal, desde la raíz del repositorio, ejecutar el comando siguiente, reemplazando el identificador de ejemplo por el que muestra el detalle.
 
 ```powershell
 node scripts/simulate-payment.mjs "identificador-de-la-orden" SUCCESS
 ```
 
-7. Mostrar las dos respuestas HTTP 200 idénticas con `outcome: "CONFIRMED"`. En la ventana ganadora, pulsar **Actualizar estado del pago** y comprobar que la fila **Estado** muestra **Confirmada**.
+7. Mostrar las dos respuestas HTTP 200 idénticas con `outcome: "CONFIRMED"`. Con **En vivo** activo, comprobar que la orden cambia a **Confirmada**. El botón **Actualizar estado del pago** permite consultar manualmente.
 
 ## Verificación sin esperar el cierre
 

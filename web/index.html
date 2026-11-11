@@ -60,10 +60,16 @@
         <p id="profile-name"></p>
         <p id="profile-email"></p>
         <button id="open-auctions" type="button">Ver subastas</button>
+        <button class="text-button" id="open-my-auctions" type="button">Mis subastas</button>
+        <button class="text-button" id="open-my-bids" type="button">Mis pujas</button>
         <button id="logout" type="button">Cerrar sesión</button>
       </section>
       <section id="auctions" hidden>
         <button class="text-button" id="back-to-profile" type="button">Mi perfil</button>
+        <section id="auction-activity" aria-labelledby="activity-heading" hidden>
+          <h1 id="activity-heading" tabindex="-1">Mi actividad</h1>
+          <ul id="activity-cards" class="auction-cards"></ul>
+        </section>
         <section id="auction-list" aria-labelledby="auctions-heading">
           <h1 id="auctions-heading" tabindex="-1">Subastas</h1>
           <button id="open-publication" type="button">Publicar subasta</button>
@@ -118,6 +124,7 @@
           <button class="text-button" id="back-to-auctions" type="button">Volver a subastas</button>
           <h1 id="auction-detail-heading" tabindex="-1">Detalle de subasta</h1>
           <p id="auction-connection" role="status" hidden></p>
+          <p id="auction-participants" hidden></p>
           <p id="auction-live-notice" role="status" hidden></p>
           <section id="payment-order" aria-labelledby="payment-heading" hidden>
             <h2 id="payment-heading">Orden de pago</h2>

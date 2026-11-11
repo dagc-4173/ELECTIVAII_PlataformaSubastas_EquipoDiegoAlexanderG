@@ -42,6 +42,8 @@ Las pujas se envían exclusivamente por `POST /auctions/{auctionId}/bids`. WebSo
 | `BID_OUTBID` | Conexiones autenticadas del líder anterior | `auctionId`, `recipientId`, `currentBidderId`, `amount` |
 | `AUCTION_CLOSED` | Todos los suscritos | `auctionId`, `status` (`CLOSED` o `DESERTED`), `sellerId`, `winnerId`, `amount` |
 | `AUCTION_RESULT` | Conexiones del vendedor y del ganador | Campos de cierre y `recipientId` |
+| `PARTICIPANT_COUNT` | Todos los suscritos | `auctionId`, `count` de cuentas distintas |
+| `PAYMENT_UPDATED` | Ganador suscrito al confirmar, todos los suscritos al vencer | `auctionId`. El ganador consulta el estado por REST. |
 
 `winnerId` y `amount` son `null` si quedó desierta. Los montos son COP enteros y `placedAt` es una fecha ISO del servidor. No se publica el identificador de orden de pago en estos eventos: el ganador la consulta por la ruta protegida RF-17.
 
@@ -78,7 +80,7 @@ npm run watch:auction -- auction-001
 
 4. Esperar `AUTHENTICATED` y `SUBSCRIBED` en ambas terminales. Enviar una puja aceptada por HTTP con el token del primer postor: ambos reciben `BID_ACCEPTED`.
 5. Enviar una puja mayor con el token del segundo postor: ambos reciben `BID_ACCEPTED`; solo el primero recibe `BID_OUTBID`.
-6. Al llegar la hora de cierre, consultar el detalle por HTTP o intentar pujar: ambos reciben `AUCTION_CLOSED`, y las conexiones del ganador y vendedor reciben `AUCTION_RESULT`. No hay cierre programado sin consulta o puja.
+6. Al llegar la hora de cierre, el servidor difunde `AUCTION_CLOSED`. Las conexiones del ganador y vendedor reciben además `AUCTION_RESULT`.
 
 El cliente usa `WEBSOCKET_URL` si está definido; de lo contrario usa localhost y `PORT` de `.env` (3000 por defecto). `AUCTION_TOKEN` y `WEBSOCKET_URL` son variables del cliente de demostración, no nuevas variables obligatorias del servidor. No guardar JWT reales en Git.
 
@@ -88,4 +90,4 @@ Prueba automatizada con dos clientes y SQLite aislado:
 npm test -- tests/infrastructure/realtime/auctionRealtime.test.ts
 ```
 
-RF-16 (contador de participantes) continúa opcional y no se implementa en este avance. El webhook y la persistencia de notificaciones aún no utilizadas siguen pendientes.
+El contador de participantes cambia al suscribirse, salir de la sala o desconectarse. Dos pestañas con la misma cuenta cuentan como un participante.

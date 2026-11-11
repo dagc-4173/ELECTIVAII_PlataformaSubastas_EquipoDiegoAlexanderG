@@ -72,6 +72,7 @@ function readPhoto(file) {
 export function setupAuctions(request, onExpired) {
   const view = document.querySelector("#auctions");
   const listing = document.querySelector("#auction-list");
+  const activity = document.querySelector("#auction-activity");
   const detail = document.querySelector("#auction-detail");
   const filters = document.querySelector("#auction-filters");
   const cards = document.querySelector("#auction-cards");
@@ -81,6 +82,7 @@ export function setupAuctions(request, onExpired) {
   const message = document.querySelector("#auction-status");
   const detailContent = document.querySelector("#auction-detail-content");
   const connection = document.querySelector("#auction-connection");
+  const participants = document.querySelector("#auction-participants");
   const liveNotice = document.querySelector("#auction-live-notice");
   const payment = document.querySelector("#payment-order");
   const paymentSummary = document.querySelector("#payment-summary");
@@ -107,6 +109,7 @@ export function setupAuctions(request, onExpired) {
   let submitting = false;
   let previewUrl;
   let editing = false;
+  let activityKind;
   let stopLive;
   let paymentRequest;
   let paymentAuctionId;
@@ -161,6 +164,7 @@ export function setupAuctions(request, onExpired) {
     stopLive?.();
     stopLive = undefined;
     connection.hidden = true;
+    participants.hidden = true;
     liveNotice.hidden = true;
   }
 
@@ -177,7 +181,7 @@ export function setupAuctions(request, onExpired) {
       closingTimer = setTimeout(refresh, Math.min(2_147_483_647, Math.max(1000, remaining + 200)));
     }
 
-    async function refresh() {
+    async function refresh(refreshOrder = false) {
       sync?.abort();
       const controller = new AbortController();
       sync = controller;
@@ -186,7 +190,11 @@ export function setupAuctions(request, onExpired) {
           signal: controller.signal,
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!controller.signal.aborted) renderDetail(auction, true);
+        if (!controller.signal.aborted) {
+          const hadOrder = paymentAuctionId === id;
+          renderDetail(auction, true);
+          if (refreshOrder && hadOrder) void loadPayment();
+        }
       } catch (error) {
         if (controller.signal.aborted) return;
         if (error.statusCode === 401) {
@@ -201,14 +209,19 @@ export function setupAuctions(request, onExpired) {
       onExpired,
       onConnection(connected) {
         connection.textContent = connected ? "En vivo" : "Conectando actualizaciones…";
+        if (!connected) participants.hidden = true;
       },
-      onMessage(type) {
+      onMessage({ type, count }) {
+        if (type === "PARTICIPANT_COUNT" && Number.isInteger(count)) {
+          participants.textContent = count === 1 ? "1 participante conectado" : `${count} participantes conectados`;
+          participants.hidden = false;
+        }
         if (type === "BID_OUTBID") {
           liveNotice.textContent = "Otro postor superó tu oferta.";
           liveNotice.hidden = false;
         }
-        if (["SUBSCRIBED", "BID_ACCEPTED", "AUCTION_CLOSED", "BID_OUTBID"].includes(type)) {
-          void refresh();
+        if (["SUBSCRIBED", "BID_ACCEPTED", "AUCTION_CLOSED", "BID_OUTBID", "PAYMENT_UPDATED"].includes(type)) {
+          void refresh(type === "PAYMENT_UPDATED" || type === "SUBSCRIBED");
         }
       },
     });
@@ -313,6 +326,7 @@ export function setupAuctions(request, onExpired) {
   function openDetail() {
     clearPayment();
     listing.hidden = true;
+    activity.hidden = true;
     publication.hidden = true;
     detail.hidden = false;
     bidForm.reset();
@@ -337,6 +351,8 @@ export function setupAuctions(request, onExpired) {
   function showDetail(id, token) {
     leaveLiveDetail();
     openDetail();
+    backToList.textContent = activityKind === "published" ? "Volver a mis subastas"
+      : activityKind === "participated" ? "Volver a mis pujas" : "Volver a subastas";
     const heading = document.querySelector("#auction-detail-heading");
     heading.textContent = "Detalle de subasta";
     heading.focus();
@@ -355,6 +371,7 @@ export function setupAuctions(request, onExpired) {
     clearPayment();
     leaveLiveDetail();
     view.hidden = false;
+    activity.hidden = true;
     detail.hidden = true;
     publication.hidden = true;
     listing.hidden = false;
@@ -372,27 +389,57 @@ export function setupAuctions(request, onExpired) {
       if (!items.length) {
         cards.append(element("li", "No se encontraron subastas."));
       }
-      for (const auction of items) {
-        const card = element("li", "");
-        card.className = "auction-card";
-        const open = element("button", "Ver detalle");
-        open.type = "button";
-        open.setAttribute("aria-label", `Ver detalle de ${auction.itemId}`);
-        open.addEventListener("click", () => showDetail(auction.id, token));
-        card.append(
-          auctionPhoto(auction),
-          element("h2", auction.itemId),
-          element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
-          element("p", amount(auction)),
-          open,
-        );
-        cards.append(card);
-      }
+      for (const auction of items) cards.append(makeCard(auction, token));
       previous.disabled = info.page <= 1;
       next.disabled = info.page >= info.totalPages;
       document.querySelector("#auction-page").textContent = `Página ${info.page} de ${info.totalPages}`;
       pagination.hidden = info.totalPages <= 1 && info.page <= 1;
     }, "No pudimos cargar las subastas. Usa Buscar para reintentar.");
+  }
+
+  function makeCard(auction, token, note) {
+    const card = element("li", "");
+    card.className = "auction-card";
+    const open = element("button", "Ver detalle");
+    open.type = "button";
+    open.setAttribute("aria-label", `Ver detalle de ${auction.itemId}`);
+    open.addEventListener("click", () => showDetail(auction.id, token));
+    card.append(
+      auctionPhoto(auction),
+      element("h2", auction.itemId),
+      element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
+      element("p", amount(auction)),
+    );
+    if (note) card.append(element("p", note));
+    card.append(open);
+    return card;
+  }
+
+  function showActivity() {
+    clearPayment();
+    leaveLiveDetail();
+    view.hidden = false;
+    listing.hidden = true;
+    detail.hidden = true;
+    activity.hidden = false;
+    const heading = document.querySelector("#activity-heading");
+    const activityCards = document.querySelector("#activity-cards");
+    const published = activityKind === "published";
+    heading.textContent = published ? "Mis subastas" : "Mis pujas";
+    heading.focus();
+    activityCards.replaceChildren();
+    return load("/users/me", (profile) => {
+      const items = published ? profile.publishedAuctions : profile.participatedAuctions;
+      if (!items.length) activityCards.append(element("li", published ? "Todavía no has publicado subastas." : "Todavía no tienes pujas aceptadas."));
+      for (const auction of items) {
+        const leads = auction.bids.at(-1)?.bidderId === userId;
+        const note = published ? undefined : auction.status === "OPEN"
+          ? (leads ? "Vas ganando" : "Superaron tu oferta")
+          : leads ? `Adjudicada a tu cuenta${auction.paymentStatus ? ` · Orden ${paymentStates[auction.paymentStatus].toLowerCase()}` : ""}`
+            : "Adjudicada a otro postor";
+        activityCards.append(makeCard(auction, sessionToken, note));
+      }
+    }, "No pudimos consultar tu actividad. Vuelve a Mi perfil e inténtalo de nuevo.", sessionToken);
   }
 
   async function submitOperation(form, path, body, onSuccess, fallback, { method = "POST", onError } = {}) {
@@ -575,13 +622,17 @@ export function setupAuctions(request, onExpired) {
     page += 1;
     showList(sessionToken, true);
   });
-  document.querySelector("#back-to-auctions").addEventListener("click", () => showList(sessionToken, true));
+  document.querySelector("#back-to-auctions").addEventListener("click", () => {
+    if (activityKind) showActivity();
+    else showList(sessionToken, true);
+  });
 
   return {
-    open(token, authenticatedUserId) {
+    open(token, authenticatedUserId, kind) {
       sessionToken = token;
       userId = authenticatedUserId;
-      return showList(token, true);
+      activityKind = kind;
+      return kind ? showActivity() : showList(token, true);
     },
     close() {
       clearPayment();
@@ -590,6 +641,7 @@ export function setupAuctions(request, onExpired) {
       view.hidden = true;
       sessionToken = undefined;
       userId = undefined;
+      activityKind = undefined;
       currentAuction = undefined;
       page = 1;
       filters.reset();

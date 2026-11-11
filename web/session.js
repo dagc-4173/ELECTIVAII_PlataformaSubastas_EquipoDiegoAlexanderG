@@ -187,6 +187,13 @@ document.querySelector("#open-auctions").addEventListener("click", () => {
   auctions.open(sessionStorage.getItem(tokenKey), userId);
 });
 
+for (const [selector, kind] of [["#open-my-auctions", "published"], ["#open-my-bids", "participated"]]) {
+  document.querySelector(selector).addEventListener("click", () => {
+    profile.hidden = true;
+    auctions.open(sessionStorage.getItem(tokenKey), userId, kind);
+  });
+}
+
 document.querySelector("#back-to-profile").addEventListener("click", () => {
   auctions.close();
   profile.hidden = false;

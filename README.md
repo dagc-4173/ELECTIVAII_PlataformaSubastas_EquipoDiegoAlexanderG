@@ -37,7 +37,9 @@ Para enviar enlaces por correo, configurar `PASSWORD_RESET_MODE=email`, `RESEND_
 
 Desde **Mi perfil**, elegir **Ver subastas** para consultar el listado, filtrar por identificador de categoría o estado y abrir el detalle con el historial de pujas aceptadas.
 
-Para probar las actualizaciones en vivo, abrir el detalle de la misma subasta con dos cuentas en ventanas separadas. Cuando se indique **En vivo**, ofertar desde una cuenta. La otra verá el monto y el historial actualizados. Si se pierde la conexión, la vista se reconecta y recupera el estado desde la API. Al llegar la hora de cierre, una vista abierta consulta el detalle para que el servidor compruebe el vencimiento y difunda el resultado.
+**Mis subastas** muestra tus publicaciones. **Mis pujas** muestra dónde participaste, si vas ganando, el resultado al cierre y el estado de tus órdenes.
+
+Para probar las actualizaciones en vivo, abrir el detalle de la misma subasta con dos cuentas en ventanas separadas. Cuando se indique **En vivo**, ofertar desde una cuenta. La otra verá el monto y el historial actualizados. El contador refleja las cuentas conectadas al detalle. Si se pierde la conexión, la vista se reconecta y recupera el estado desde la API.
 
 En el listado, elegir **Publicar subasta** y completar el artículo, la categoría, los valores en pesos y la fecha de cierre. Para ofertar, entrar con otra cuenta, abrir la subasta y enviar el monto desde el detalle. Cuando la API acepta la oferta, el detalle muestra el nuevo valor y actualiza el historial.
 
@@ -55,7 +57,7 @@ Configurar `PAYMENT_WEBHOOK_SECRET` en `.env` con un valor aleatorio de al menos
 node scripts/simulate-payment.mjs <id-de-la-orden> SUCCESS
 ```
 
-El simulador firma el cuerpo JSON con HMAC-SHA256 y lo envía dos veces a `POST /payments/webhook`. Las dos respuestas deben ser idénticas. En el detalle del ganador, pulsar **Actualizar estado del pago** para ver la orden **Confirmada**. Usar `FAILED` para simular un fallo que deja la orden pendiente antes del vencimiento.
+El simulador firma el cuerpo JSON con HMAC-SHA256 y lo envía dos veces a `POST /payments/webhook`. Las dos respuestas deben ser idénticas. El detalle abierto del ganador muestra **Confirmada** al recibir el aviso en vivo. También se puede consultar manualmente con **Actualizar estado del pago**. Usar `FAILED` para simular un fallo que deja la orden pendiente antes del vencimiento.
 
 El servidor revisa las órdenes pendientes al iniciar y cada 30 segundos. Si se cumple el plazo sin confirmación, la orden pasa a **Vencida** y la subasta a **Incumplida**. En el detalle del ganador, **Actualizar estado del pago** consulta el estado guardado.
 
@@ -675,7 +677,7 @@ Tras el cierre y la adjudicación, el ganador puede consultar `id`, `auctionId`,
 
 La identidad proviene del JWT. Devuelve `401` sin autenticación válida, `403` si existe la orden pero el usuario no es el ganador (incluido el vendedor), y `404` con `RESOURCE_NOT_FOUND` si la subasta o la orden no existen. Las subastas abiertas o desiertas no tienen orden consultable.
 
-Esta ruta solo lee: no ejecuta cierre perezoso, confirmación ni expiración. Para provocar el cierre de una subasta vencida, consultar primero `GET /auctions/{auctionId}`. Las lecturas repetidas conservan la misma orden; los estados `CONFIRMED` y `EXPIRED` están modelados en el dominio, sin procesos HTTP automáticos que los apliquen actualmente.
+Esta ruta lee la orden guardada. El webhook confirma el pago y el servidor revisa periódicamente las órdenes pendientes para expirar las vencidas.
 
 ---
 
@@ -759,19 +761,13 @@ $env:AUCTION_TOKEN = "token-del-login"
 npm run watch:auction -- auction-001
 ```
 
-Los eventos se emiten después de guardar. No tienen replay ni entrega garantizada: al reconectar, volver a suscribirse y consultar el detalle REST. El contador de participantes (RF-16) es opcional y sigue pendiente.
+Los eventos se emiten después de guardar. Al reconectar, volver a suscribirse y consultar el detalle REST. RF-16 cuenta una vez por cuenta autenticada con al menos una conexión suscrita.
 
 ---
 
-# Cierre perezoso de subastas
+# Cierre de subastas
 
-El proyecto utiliza cierre perezoso.
-
-No existe un proceso programado que cierre automáticamente las subastas.
-
-Al consultar una subasta por ID, la aplicación compara el cierre con la hora del servidor. Al intentar pujar por HTTP, compara el cierre con la hora del servidor, que también fija `placedAt`. El listado `GET /auctions` no ejecuta el cierre perezoso.
-
-`CloseAuctionUseCase` existe, pero no tiene una ruta HTTP propia. La expiración de pagos está modelada en el dominio y no se ejecuta automáticamente ni dispone de endpoint.
+El servidor comprueba las subastas abiertas al iniciar y cada segundo. Cierra las vencidas, adjudica al mejor postor si hubo pujas y emite el resultado después de guardarlo. La consulta del detalle y el intento de puja también comprueban el vencimiento con la hora del servidor.
 
 Si ya venció:
 
@@ -1017,7 +1013,7 @@ final
 | RF-25 | Corregir un monto rechazado a partir del motivo que muestra el detalle. |
 | RF-18 a RF-20 | Confirmar la orden mediante una notificación firmada y comprobar que el reenvío obtiene la misma respuesta. |
 
-El cierre de la subasta se comprueba al consultar el detalle o intentar una puja después del plazo. Una vista abierta consulta automáticamente al llegar la hora. El vencimiento de las órdenes pendientes se revisa al iniciar el servidor y cada 30 segundos.
+El cierre automático funciona con el servidor encendido, aunque se cierren todas las pestañas. El vencimiento de las órdenes pendientes se revisa al iniciar el servidor y cada 30 segundos.
 
 ---
 

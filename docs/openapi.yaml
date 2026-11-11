@@ -825,7 +825,14 @@ components:
         participatedAuctions:
           type: array
           items:
-            $ref: '#/components/schemas/AuctionResponse'
+            allOf:
+            - $ref: '#/components/schemas/AuctionResponse'
+            - type: object
+              properties:
+                paymentStatus:
+                  type: string
+                  enum: [PENDING, CONFIRMED, EXPIRED]
+                  description: Estado de la orden propia, disponible únicamente para la cuenta ganadora.
     ErrorResponse:
       type: object
       required:
