@@ -40,6 +40,8 @@ Para probar las actualizaciones en vivo, abrir el detalle de la misma subasta co
 
 En el listado, elegir **Publicar subasta** y completar el artículo, la categoría, los valores en pesos y la fecha de cierre. Para ofertar, entrar con otra cuenta, abrir la subasta y enviar el monto desde el detalle. Cuando la API acepta la oferta, el detalle muestra el nuevo valor y actualiza el historial.
 
+Si la API rechaza una puja, el detalle muestra el motivo junto al campo de oferta. Los errores de monto conservan lo que se escribió y devuelven el foco al campo para poder corregirlo.
+
 Al publicar, se puede adjuntar una foto opcional JPEG, PNG o WebP de hasta 2 MiB. La vista previa aparece antes de enviar y la foto publicada se muestra en el listado y el detalle.
 
 En el detalle, el vendedor puede elegir **Editar publicación** mientras la subasta siga abierta y sin pujas. Puede corregir el artículo y la categoría, y seleccionar una foto nueva para reemplazar la actual.

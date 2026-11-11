@@ -31,6 +31,11 @@ const operationErrors = new Map([
   ["Bid must be greater than or equal to current highest bid plus minimum increment", "La oferta debe cubrir la oferta vigente más el incremento mínimo."],
 ]);
 
+const bidAmountErrors = new Set([
+  "First bid must be greater than or equal to base price",
+  "Bid must be greater than or equal to current highest bid plus minimum increment",
+]);
+
 function element(tag, text) {
   const node = document.createElement(tag);
   node.textContent = text;
@@ -85,6 +90,7 @@ export function setupAuctions(request, onExpired) {
   const photoPreview = document.querySelector("#photo-preview");
   const bidForm = document.querySelector("#bid-form");
   const bidInput = document.querySelector("#bid-amount");
+  const bidFeedback = document.querySelector("#bid-feedback");
   const backToProfile = document.querySelector("#back-to-profile");
   const backToList = document.querySelector("#back-to-auctions");
   const cancelPublication = document.querySelector("#cancel-publication");
@@ -250,7 +256,23 @@ export function setupAuctions(request, onExpired) {
     publication.hidden = true;
     detail.hidden = false;
     bidForm.reset();
+    clearBidFeedback();
   }
+
+  function clearBidFeedback() {
+    bidFeedback.textContent = "";
+    bidInput.removeAttribute("aria-invalid");
+  }
+
+  function showBidError(text, invalidAmount = false) {
+    bidFeedback.textContent = text;
+    if (invalidAmount && !bidForm.hidden) {
+      bidInput.setAttribute("aria-invalid", "true");
+      bidInput.focus();
+    }
+  }
+
+  bidInput.addEventListener("input", clearBidFeedback);
 
   function showDetail(id, token) {
     leaveLiveDetail();
@@ -312,7 +334,7 @@ export function setupAuctions(request, onExpired) {
     }, "No pudimos cargar las subastas. Usa Buscar para reintentar.");
   }
 
-  async function submitOperation(form, path, body, onSuccess, fallback, method = "POST") {
+  async function submitOperation(form, path, body, onSuccess, fallback, { method = "POST", onError } = {}) {
     const controls = [form.querySelector('button[type="submit"]'), backToProfile, backToList, cancelPublication];
     submitting = true;
     controls.forEach((control) => { control.disabled = true; });
@@ -327,12 +349,19 @@ export function setupAuctions(request, onExpired) {
     } catch (error) {
       if (error.statusCode === 401) {
         onExpired();
+      } else if (onError) {
+        message.textContent = "";
+        onError(error);
       } else if (error.details?.code === "INVALID_PHOTO") {
         message.textContent = "La foto debe ser un archivo JPEG, PNG o WebP válido.";
       } else if (error.statusCode === 413) {
         message.textContent = "La foto supera el límite de 2 MB.";
       } else if (error.statusCode === 409) {
         message.textContent = "La subasta cambió. Vuelve al listado y abre el detalle antes de reintentar.";
+      } else if (error.statusCode === 404) {
+        message.textContent = "Esta subasta ya no está disponible.";
+      } else if (error.statusCode === 403 && !operationErrors.has(error.details?.message)) {
+        message.textContent = "Tu cuenta no tiene permiso para realizar este cambio.";
       } else {
         message.textContent = operationErrors.get(error.details?.message) ?? fallback;
       }
@@ -397,7 +426,7 @@ export function setupAuctions(request, onExpired) {
         startLiveDetail(auction.id, sessionToken);
         message.textContent = "Cambios guardados.";
         document.querySelector("#auction-detail-heading").focus();
-      }, "No pudimos guardar los cambios. Revisa los datos o vuelve a intentarlo.", "PATCH");
+      }, "No pudimos guardar los cambios. Revisa los datos o vuelve a intentarlo.", { method: "PATCH" });
       return;
     }
     const basePrice = Number(fields.get("basePrice"));
@@ -434,9 +463,11 @@ export function setupAuctions(request, onExpired) {
   bidForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (submitting || !currentAuction || bidForm.hidden) return;
+    clearBidFeedback();
     const bidAmount = bidInput.valueAsNumber;
     if (!Number.isSafeInteger(bidAmount) || bidAmount < 1) {
-      message.textContent = "Ingresa un monto válido en pesos enteros.";
+      message.textContent = "";
+      showBidError("Ingresa un monto mayor que cero en pesos enteros.", true);
       return;
     }
     submitOperation(bidForm, `/auctions/${encodeURIComponent(currentAuction.id)}/bids`, {
@@ -448,7 +479,25 @@ export function setupAuctions(request, onExpired) {
       liveNotice.hidden = true;
       bidForm.reset();
       message.textContent = "Oferta aceptada.";
-    }, "No pudimos registrar la oferta. Vuelve a intentarlo.");
+    }, "No pudimos registrar la oferta.", {
+      onError(error) {
+        const reason = error.details?.message;
+        const code = error.details?.code;
+        if (code === "CONCURRENT_MODIFICATION" || error.statusCode === 409) {
+          showBidError("Otra operación cambió la subasta. Vuelve al listado, abre el detalle y comprueba la próxima oferta mínima antes de reintentar.");
+        } else if (error.statusCode === 404) {
+          showBidError("Esta subasta ya no está disponible.");
+        } else if (bidAmountErrors.has(reason)) {
+          showBidError(`${operationErrors.get(reason)} Consulta la próxima oferta mínima e ingresa un monto igual o mayor.`, true);
+        } else if (operationErrors.has(reason)) {
+          showBidError(operationErrors.get(reason));
+        } else if (code === "INVALID_REQUEST" || error.statusCode === 403) {
+          showBidError("La API rechazó la oferta. Comprueba el monto y que tu cuenta pueda participar.");
+        } else {
+          showBidError("No pudimos confirmar la oferta. Comprueba el historial antes de volver a enviarla.");
+        }
+      },
+    });
   });
 
   filters.addEventListener("submit", (event) => {

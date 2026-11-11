@@ -123,10 +123,11 @@
           <button id="edit-publication" type="button" hidden>Editar publicación</button>
           <form id="bid-form" novalidate hidden>
             <label for="bid-amount">Tu oferta (COP)</label>
-            <input id="bid-amount" name="amount" type="number" min="1" step="1" aria-describedby="bid-minimum" required>
+            <input id="bid-amount" name="amount" type="number" min="1" step="1" aria-describedby="bid-minimum bid-feedback" required>
             <small id="bid-minimum"></small>
             <button type="submit">Ofertar</button>
           </form>
+          <p id="bid-feedback" role="alert"></p>
         </section>
         <p id="auction-status" role="status"></p>
       </section>
