@@ -137,7 +137,13 @@ export class AuctionController {
       return;
     }
 
-    response.status(200).json(AuctionResponseMapper.toResponse(auction));
+    const sellerPaymentStatus = auction.seller.value === this.getAuthenticatedUserId(response)
+      ? auction.paymentOrder?.status.value
+      : undefined;
+    response.status(200).json({
+      ...AuctionResponseMapper.toResponse(auction),
+      ...(sellerPaymentStatus && { sellerPaymentStatus }),
+    });
   };
 
   list = async (

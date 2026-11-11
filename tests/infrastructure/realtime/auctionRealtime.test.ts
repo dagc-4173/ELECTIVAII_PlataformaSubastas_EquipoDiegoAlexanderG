@@ -108,10 +108,11 @@ describe("RF-12–15 WebSocket auction updates", () => {
     expect(observer.messages.filter((event) => event.type === "BID_ACCEPTED")).toHaveLength(1);
   });
 
-  it("closes due auctions without a detail request and privately notifies the winner about a confirmed payment", async () => {
+  it("closes due auctions and shares payment confirmation with the seller and winner", async () => {
     const winner = await client("first");
+    const seller = await client("seller");
     const observer = await client("observer");
-    await winner.subscribe(); await observer.subscribe();
+    await winner.subscribe(); await seller.subscribe(); await observer.subscribe();
     await bid("first", 100, "winning-bid");
     vi.setSystemTime(new Date(now.getTime() + 3600000));
     expect(application.closeDueAuctions.execute()).toBe(2);
@@ -121,6 +122,11 @@ describe("RF-12–15 WebSocket auction updates", () => {
     expect(publicList.body.items.map((auction: { status: string }) => auction.status)).toEqual(["CLOSED", "DESERTED"]);
     const order = await request(application.app).get("/auctions/auction-a/payment-order")
       .set("Authorization", `Bearer ${tokens.first}`).expect(200);
+    const sellerDetail = () => request(application.app).get("/auctions/auction-a")
+      .set("Authorization", `Bearer ${tokens.seller}`).expect(200);
+    expect((await sellerDetail()).body.sellerPaymentStatus).toBe("PENDING");
+    await request(application.app).get("/auctions/auction-a/payment-order")
+      .set("Authorization", `Bearer ${tokens.seller}`).expect(403);
     const body = JSON.stringify({
       eventId: "live-payment", paymentOrderId: order.body.id, result: "SUCCESS", occurredAt: new Date().toISOString(),
     });
@@ -130,9 +136,15 @@ describe("RF-12–15 WebSocket auction updates", () => {
         .set("X-Payment-Signature", signature).send(body).expect(200);
     }
     expect(await winner.wait("PAYMENT_UPDATED")).toEqual({ type: "PAYMENT_UPDATED", auctionId: "auction-a" });
-    await winner.barrier(); await observer.barrier();
+    expect(await seller.wait("PAYMENT_UPDATED")).toEqual({ type: "PAYMENT_UPDATED", auctionId: "auction-a" });
+    await winner.barrier(); await seller.barrier(); await observer.barrier();
     expect(winner.messages.filter((event) => event.type === "PAYMENT_UPDATED")).toHaveLength(1);
+    expect(seller.messages.filter((event) => event.type === "PAYMENT_UPDATED")).toHaveLength(1);
     expect(observer.messages.some((event) => event.type === "PAYMENT_UPDATED")).toBe(false);
+    expect((await sellerDetail()).body.sellerPaymentStatus).toBe("CONFIRMED");
+    const otherDetail = await request(application.app).get("/auctions/auction-a")
+      .set("Authorization", `Bearer ${tokens.observer}`).expect(200);
+    expect(otherDetail.body).not.toHaveProperty("sellerPaymentStatus");
   });
 
   it("counts distinct subscribed accounts and updates the count on disconnect", async () => {

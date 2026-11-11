@@ -361,7 +361,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuctionResponse'
+                allOf:
+                - $ref: '#/components/schemas/AuctionResponse'
+                - type: object
+                  properties:
+                    sellerPaymentStatus:
+                      type: string
+                      enum: [PENDING, CONFIRMED, EXPIRED]
+                      description: Estado del pago disponible únicamente para el vendedor autenticado.
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '400':

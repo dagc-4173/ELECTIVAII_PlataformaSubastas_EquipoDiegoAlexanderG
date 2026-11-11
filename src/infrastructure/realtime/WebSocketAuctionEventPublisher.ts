@@ -137,8 +137,8 @@ export class WebSocketAuctionEventPublisher implements AuctionEventPublisher {
       if (this.tokens.verify(session.token) === null) { session.socket.close(1008, "Token expired"); continue; }
       if (event.type === "BID_OUTBID") {
         if (session.userId === event.recipientId) this.send(session, event);
-      } else if (event.type === "PAYMENT_UPDATED" && event.recipientId !== undefined) {
-        if (session.userId === event.recipientId && session.subscriptions.has(event.auctionId)) {
+      } else if (event.type === "PAYMENT_UPDATED" && event.recipientIds !== undefined) {
+        if (event.recipientIds.includes(session.userId) && session.subscriptions.has(event.auctionId)) {
           this.send(session, { type: event.type, auctionId: event.auctionId });
         }
       } else {

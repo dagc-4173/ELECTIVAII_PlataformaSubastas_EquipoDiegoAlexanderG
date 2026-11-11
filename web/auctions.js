@@ -15,6 +15,7 @@ const money = new Intl.NumberFormat("es-CO", {
 });
 const date = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" });
 const paymentStates = { PENDING: "Pendiente", CONFIRMED: "Confirmada", EXPIRED: "Vencida" };
+const sellerPaymentLabels = { PENDING: "Pago pendiente", CONFIRMED: "Pago confirmado", EXPIRED: "Pago vencido" };
 
 const operationErrors = new Map([
   ["Only the auction seller can cancel the auction", "Solo el vendedor puede cancelar la subasta."],
@@ -88,6 +89,8 @@ export function setupAuctions(request, onExpired) {
   const participants = document.querySelector("#auction-participants");
   const liveNotice = document.querySelector("#auction-live-notice");
   const payment = document.querySelector("#payment-order");
+  const sellerPayment = document.querySelector("#seller-payment");
+  const sellerPaymentStatus = document.querySelector("#seller-payment-status");
   const paymentSummary = document.querySelector("#payment-summary");
   const paymentFeedback = document.querySelector("#payment-feedback");
   const refreshPayment = document.querySelector("#refresh-payment");
@@ -320,6 +323,11 @@ export function setupAuctions(request, onExpired) {
     editPublication.hidden = auction.sellerId !== userId || auction.status !== "OPEN"
       || auction.bids.length > 0 || Date.parse(auction.closesAt) <= Date.now();
     cancelAuction.hidden = editPublication.hidden;
+    const sellerStatus = sellerPaymentLabels[auction.sellerPaymentStatus];
+    if (sellerPaymentStatus.textContent !== (sellerStatus ?? "")) {
+      sellerPaymentStatus.textContent = sellerStatus ?? "";
+    }
+    sellerPayment.hidden = !sellerStatus;
     if ((auction.status === "CLOSED" || auction.status === "DEFAULTED")
       && auction.bids.at(-1)?.bidderId === userId && paymentAuctionId !== auction.id) {
       paymentAuctionId = auction.id;
@@ -330,6 +338,7 @@ export function setupAuctions(request, onExpired) {
 
   function openDetail() {
     clearPayment();
+    sellerPayment.hidden = true;
     listing.hidden = true;
     activity.hidden = true;
     publication.hidden = true;

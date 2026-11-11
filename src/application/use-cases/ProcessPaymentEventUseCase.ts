@@ -29,7 +29,11 @@ export class ProcessPaymentEventUseCase {
       }
       if (event.result === "FAILED") return { outcome: "FAILED", changed: false };
       order.confirm();
-      notification = { type: "PAYMENT_UPDATED", auctionId: auction.id.value, recipientId: order.winner.value };
+      notification = {
+        type: "PAYMENT_UPDATED",
+        auctionId: auction.id.value,
+        recipientIds: [order.winner.value, auction.seller.value],
+      };
       return { outcome: "CONFIRMED", changed: true };
     });
     if (notification) announceAuctionEvent(this.events, notification);

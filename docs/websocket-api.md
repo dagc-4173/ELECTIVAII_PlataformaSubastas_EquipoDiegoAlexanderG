@@ -43,7 +43,7 @@ Las pujas se envían exclusivamente por `POST /auctions/{auctionId}/bids`. WebSo
 | `AUCTION_CLOSED` | Todos los suscritos | `auctionId`, `status` (`CLOSED` o `DESERTED`), `sellerId`, `winnerId`, `amount` |
 | `AUCTION_RESULT` | Conexiones del vendedor y del ganador | Campos de cierre y `recipientId` |
 | `PARTICIPANT_COUNT` | Todos los suscritos | `auctionId`, `count` de cuentas distintas |
-| `PAYMENT_UPDATED` | Ganador suscrito al confirmar, todos los suscritos al vencer | `auctionId`. El ganador consulta el estado por REST. |
+| `PAYMENT_UPDATED` | Ganador y vendedor suscritos al confirmar, todos los suscritos al vencer | `auctionId`. El ganador consulta su orden y el vendedor consulta el estado en el detalle. |
 
 `winnerId` y `amount` son `null` si quedó desierta. Los montos son COP enteros y `placedAt` es una fecha ISO del servidor. No se publica el identificador de orden de pago en estos eventos: el ganador la consulta por la ruta protegida RF-17.
 
