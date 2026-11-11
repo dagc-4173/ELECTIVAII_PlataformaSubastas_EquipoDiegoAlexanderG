@@ -84,6 +84,7 @@ export function setupAuctions(request, onExpired) {
   const photoInput = document.querySelector("#auction-photo");
   const photoPreview = document.querySelector("#photo-preview");
   const bidForm = document.querySelector("#bid-form");
+  const bidInput = document.querySelector("#bid-amount");
   const backToProfile = document.querySelector("#back-to-profile");
   const backToList = document.querySelector("#back-to-auctions");
   const cancelPublication = document.querySelector("#cancel-publication");
@@ -232,6 +233,8 @@ export function setupAuctions(request, onExpired) {
     const minimum = auction.currentBidAmount === null
       ? auction.basePrice
       : auction.currentBidAmount + auction.minimumIncrement;
+    bidInput.min = String(minimum);
+    bidInput.step = String(auction.minimumIncrement);
     document.querySelector("#bid-minimum").textContent = `Próxima oferta mínima: ${money.format(minimum)}`;
     const leading = auction.status === "OPEN" && auction.bids.at(-1)?.bidderId === userId;
     if (leading) {
@@ -431,7 +434,7 @@ export function setupAuctions(request, onExpired) {
   bidForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (submitting || !currentAuction || bidForm.hidden) return;
-    const bidAmount = Number(new FormData(bidForm).get("amount"));
+    const bidAmount = bidInput.valueAsNumber;
     if (!Number.isSafeInteger(bidAmount) || bidAmount < 1) {
       message.textContent = "Ingresa un monto válido en pesos enteros.";
       return;
