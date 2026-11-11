@@ -10,6 +10,11 @@
 body { margin: 0; }
 
 .brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
   border-bottom: 1px solid #d7dcd2;
   padding: 1.15rem clamp(1rem, 5vw, 4rem);
   font-weight: 650;
@@ -78,14 +83,32 @@ button:disabled { opacity: 0.7; cursor: wait; }
 
 #profile-email { overflow-wrap: anywhere; }
 
-.profile-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
-  gap: 0.65rem;
-  margin-top: 1.5rem;
+.account-menu:not([hidden]) {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
-.profile-actions button { width: 100%; }
+.account-menu button { font-size: 0.875rem; }
+
+.account-menu .account-name {
+  max-width: 100%;
+  border-color: #b9c5b8;
+  background: #e8eee5;
+  color: #254634;
+  overflow-wrap: anywhere;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 #status { line-height: 1.5; }
 

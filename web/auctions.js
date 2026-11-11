@@ -106,7 +106,7 @@ export function setupAuctions(request, onExpired) {
   const bidForm = document.querySelector("#bid-form");
   const bidInput = document.querySelector("#bid-amount");
   const bidFeedback = document.querySelector("#bid-feedback");
-  const backToProfile = document.querySelector("#back-to-profile");
+  const menuButtons = document.querySelectorAll("#account-menu button");
   const backToList = document.querySelector("#back-to-auctions");
   const cancelPublication = document.querySelector("#cancel-publication");
   let active;
@@ -474,6 +474,7 @@ export function setupAuctions(request, onExpired) {
     leaveLiveDetail();
     view.hidden = false;
     listing.hidden = true;
+    publication.hidden = true;
     detail.hidden = true;
     activity.hidden = false;
     const heading = document.querySelector("#activity-heading");
@@ -497,7 +498,7 @@ export function setupAuctions(request, onExpired) {
   }
 
   async function submitOperation(form, path, body, onSuccess, fallback, { method = "POST", onError } = {}) {
-    const controls = [form.querySelector('button[type="submit"]'), backToProfile, backToList, cancelPublication, editPublication];
+    const controls = [form.querySelector('button[type="submit"]'), ...menuButtons, backToList, cancelPublication, editPublication];
     submitting = true;
     controls.forEach((control) => { control.disabled = true; });
     message.textContent = "Enviando…";

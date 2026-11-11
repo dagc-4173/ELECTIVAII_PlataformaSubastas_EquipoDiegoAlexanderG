@@ -8,7 +8,19 @@
     <script type="module" src="./session.js"></script>
   </head>
   <body>
-    <header class="brand">Plataforma de Subastas</header>
+    <header class="brand">
+      <span>Plataforma de Subastas</span>
+      <nav class="account-menu" id="account-menu" aria-label="Menú de la cuenta" hidden>
+        <button id="open-auctions" type="button">Ver subastas</button>
+        <button id="open-my-auctions" type="button">Mis subastas</button>
+        <button id="open-my-bids" type="button">Mis pujas</button>
+        <button id="logout" type="button">Cerrar sesión</button>
+        <button id="back-to-profile" class="account-name" type="button" title="Mi perfil">
+          <span id="menu-name"></span>
+          <span class="sr-only">, Mi perfil</span>
+        </button>
+      </nav>
+    </header>
     <main>
       <section class="card" aria-labelledby="login-heading" id="login" hidden>
         <h1 id="login-heading" tabindex="-1">Iniciar sesión</h1>
@@ -59,15 +71,8 @@
         <h1 id="profile-heading" tabindex="-1">Mi perfil</h1>
         <p id="profile-name"></p>
         <p id="profile-email"></p>
-        <div class="profile-actions">
-          <button id="open-auctions" type="button">Ver subastas</button>
-          <button id="open-my-auctions" type="button">Mis subastas</button>
-          <button id="open-my-bids" type="button">Mis pujas</button>
-          <button id="logout" type="button">Cerrar sesión</button>
-        </div>
       </section>
       <section id="auctions" hidden>
-        <button class="text-button" id="back-to-profile" type="button">Mi perfil</button>
         <section id="auction-activity" aria-labelledby="activity-heading" hidden>
           <h1 id="activity-heading" tabindex="-1">Mi actividad</h1>
           <ul id="activity-cards" class="auction-cards"></ul>

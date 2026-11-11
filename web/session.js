@@ -3,6 +3,8 @@ import { setupAuctions } from "./auctions.js";
 const tokenKey = "subastas.accessToken";
 const login = document.querySelector("#login");
 const profile = document.querySelector("#profile");
+const accountMenu = document.querySelector("#account-menu");
+const menuName = document.querySelector("#menu-name");
 const form = document.querySelector("#login-form");
 const submit = document.querySelector("#submit");
 const password = document.querySelector("#password");
@@ -38,6 +40,8 @@ async function request(path, options) {
 
 function showLogin(message = "", focus = false) {
   auctions.close();
+  accountMenu.hidden = true;
+  menuName.textContent = "";
   userId = undefined;
   registration.hidden = true;
   recovery.hidden = true;
@@ -55,6 +59,8 @@ async function showProfile(token) {
     headers: { Authorization: `Bearer ${token}` },
   });
   userId = user.id;
+  menuName.textContent = user.name;
+  accountMenu.hidden = false;
   document.querySelector("#profile-name").textContent = user.name;
   document.querySelector("#profile-email").textContent = user.email;
   login.hidden = true;
@@ -213,6 +219,7 @@ function openResetLink() {
   resetToken = token;
   history.replaceState(null, "", location.pathname + location.search);
   auctions.close();
+  accountMenu.hidden = true;
   login.hidden = true;
   profile.hidden = true;
   registration.hidden = true;
