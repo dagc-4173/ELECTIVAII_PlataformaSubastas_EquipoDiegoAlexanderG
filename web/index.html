@@ -44,6 +44,7 @@
         <button class="text-button" id="back-to-profile" type="button">Mi perfil</button>
         <section id="auction-list" aria-labelledby="auctions-heading">
           <h1 id="auctions-heading" tabindex="-1">Subastas</h1>
+          <button id="open-publication" type="button">Publicar subasta</button>
           <form id="auction-filters" class="auction-filters">
             <label for="filter-category">Categoría
               <input id="filter-category" name="categoryId">
@@ -67,10 +68,34 @@
             <button type="button" id="next-page">Siguiente</button>
           </nav>
         </section>
+        <section class="card" id="auction-publication" aria-labelledby="publication-heading" hidden>
+          <button class="text-button" id="cancel-publication" type="button">Volver a subastas</button>
+          <h1 id="publication-heading" tabindex="-1">Publicar subasta</h1>
+          <form id="publication-form">
+            <label for="item">Artículo</label>
+            <input id="item" name="itemId" required>
+            <label for="category">Categoría</label>
+            <input id="category" name="categoryId" required>
+            <label for="base-price">Precio base (COP)</label>
+            <input id="base-price" name="basePrice" type="number" min="1" step="1" required>
+            <label for="minimum-increment">Incremento mínimo (COP)</label>
+            <input id="minimum-increment" name="minimumIncrement" type="number" min="1" step="1" required>
+            <label for="closing-date">Fecha y hora de cierre</label>
+            <input id="closing-date" name="closesAt" type="datetime-local" aria-describedby="publication-duration" required>
+            <small id="publication-duration">La subasta debe durar entre 1 hora y 30 días.</small>
+            <button type="submit">Publicar</button>
+          </form>
+        </section>
         <section class="card" id="auction-detail" aria-labelledby="auction-detail-heading" hidden>
           <button class="text-button" id="back-to-auctions" type="button">Volver a subastas</button>
           <h1 id="auction-detail-heading" tabindex="-1">Detalle de subasta</h1>
           <div id="auction-detail-content"></div>
+          <form id="bid-form" hidden>
+            <label for="bid-amount">Tu oferta (COP)</label>
+            <input id="bid-amount" name="amount" type="number" min="1" step="1" aria-describedby="bid-minimum" required>
+            <small id="bid-minimum"></small>
+            <button type="submit">Ofertar</button>
+          </form>
         </section>
         <p id="auction-status" role="status"></p>
       </section>

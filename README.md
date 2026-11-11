@@ -32,6 +32,8 @@ Ingresar con el correo y la contraseña de esa cuenta. La vista de perfil muestr
 
 Desde **Mi perfil**, elegir **Ver subastas** para consultar el listado, filtrar por identificador de categoría o estado y abrir el detalle con el historial de pujas aceptadas.
 
+En el listado, elegir **Publicar subasta** y completar el artículo, la categoría, los valores en pesos y la fecha de cierre. Para ofertar, entrar con otra cuenta, abrir la subasta y enviar el monto desde el detalle. Cuando la API acepta la oferta, el detalle muestra el nuevo valor y actualiza el historial.
+
 ## Alcance de la Entrega 1
 
 La primera entrega se concentra en:

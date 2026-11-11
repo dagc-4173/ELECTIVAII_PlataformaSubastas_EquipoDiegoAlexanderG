@@ -13,6 +13,7 @@ const registrationForm = document.querySelector("#registration-form");
 const registerSubmit = document.querySelector("#register-submit");
 const openRegistration = document.querySelector("#open-registration");
 const backToLogin = document.querySelector("#back-to-login");
+let userId;
 
 class ApiError extends Error {
   constructor(statusCode, details) {
@@ -33,6 +34,7 @@ async function request(path, options) {
 
 function showLogin(message = "", focus = false) {
   auctions.close();
+  userId = undefined;
   registration.hidden = true;
   profile.hidden = true;
   document.querySelector("#profile-name").textContent = "";
@@ -45,6 +47,7 @@ async function showProfile(token) {
   const user = await request("/users/me", {
     headers: { Authorization: `Bearer ${token}` },
   });
+  userId = user.id;
   document.querySelector("#profile-name").textContent = user.name;
   login.hidden = true;
   profile.hidden = false;
@@ -171,7 +174,7 @@ const auctions = setupAuctions(request, () => {
 
 document.querySelector("#open-auctions").addEventListener("click", () => {
   profile.hidden = true;
-  auctions.open(sessionStorage.getItem(tokenKey));
+  auctions.open(sessionStorage.getItem(tokenKey), userId);
 });
 
 document.querySelector("#back-to-profile").addEventListener("click", () => {

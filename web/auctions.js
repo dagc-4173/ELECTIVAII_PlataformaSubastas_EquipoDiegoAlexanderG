@@ -13,6 +13,19 @@ const money = new Intl.NumberFormat("es-CO", {
 });
 const date = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" });
 
+const operationErrors = new Map([
+  ["Auction duration must be at least one hour", "Elige un cierre al menos una hora después de la publicación."],
+  ["Auction duration cannot exceed thirty days", "Elige un cierre dentro de los próximos 30 días."],
+  ["Auction closing date must be after publication date", "La fecha de cierre debe ser posterior a la publicación."],
+  ["Auction closing date must be in the future", "Elige una fecha de cierre futura."],
+  ["Bids are only allowed on open auctions", "La subasta ya no está abierta."],
+  ["Bids are not allowed after the auction closing date", "El plazo para ofertar terminó."],
+  ["Seller cannot bid on own auction", "No puedes ofertar en tu propia subasta."],
+  ["First bid must be greater than or equal to base price", "La primera oferta debe alcanzar el precio base."],
+  ["Highest bidder cannot outbid own leading bid", "Tu oferta ya es la más alta."],
+  ["Bid must be greater than or equal to current highest bid plus minimum increment", "La oferta debe cubrir la oferta vigente más el incremento mínimo."],
+]);
+
 function element(tag, text) {
   const node = document.createElement(tag);
   node.textContent = text;
@@ -36,8 +49,18 @@ export function setupAuctions(request, onExpired) {
   const next = document.querySelector("#next-page");
   const message = document.querySelector("#auction-status");
   const detailContent = document.querySelector("#auction-detail-content");
+  const publication = document.querySelector("#auction-publication");
+  const publicationForm = document.querySelector("#publication-form");
+  const bidForm = document.querySelector("#bid-form");
+  const backToProfile = document.querySelector("#back-to-profile");
+  const backToList = document.querySelector("#back-to-auctions");
+  const cancelPublication = document.querySelector("#cancel-publication");
   let active;
   let page = 1;
+  let currentAuction;
+  let sessionToken;
+  let userId;
+  let submitting = false;
 
   async function load(path, render, fallback, token) {
     active?.abort();
@@ -62,34 +85,51 @@ export function setupAuctions(request, onExpired) {
     }
   }
 
-  function showDetail(id, token) {
+  function renderDetail(auction) {
+    currentAuction = auction;
+    document.querySelector("#auction-detail-heading").textContent = auction.itemId;
+    const history = document.createElement("ol");
+    for (const bid of [...auction.bids].reverse()) {
+      history.append(element("li", `${money.format(bid.amount)} · ${date.format(new Date(bid.placedAt))}`));
+    }
+    detailContent.replaceChildren(
+      element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
+      element("p", amount(auction)),
+      element("p", `Incremento mínimo: ${money.format(auction.minimumIncrement)}`),
+      element("p", `Cierre: ${date.format(new Date(auction.closesAt))}`),
+      element("h2", "Historial de pujas"),
+      auction.bids.length ? history : element("p", "Todavía no hay pujas."),
+    );
+    const minimum = auction.currentBidAmount === null
+      ? auction.basePrice
+      : auction.currentBidAmount + auction.minimumIncrement;
+    document.querySelector("#bid-minimum").textContent = `Próxima oferta mínima: ${money.format(minimum)}`;
+    bidForm.hidden = auction.status !== "OPEN" || auction.sellerId === userId;
+  }
+
+  function openDetail() {
     listing.hidden = true;
+    publication.hidden = true;
     detail.hidden = false;
+    bidForm.reset();
+  }
+
+  function showDetail(id, token) {
+    openDetail();
     const heading = document.querySelector("#auction-detail-heading");
     heading.textContent = "Detalle de subasta";
     heading.focus();
     detailContent.replaceChildren();
-
-    return load(`/auctions/${encodeURIComponent(id)}`, (auction) => {
-      heading.textContent = auction.itemId;
-      const history = document.createElement("ol");
-      for (const bid of [...auction.bids].reverse()) {
-        history.append(element("li", `${money.format(bid.amount)} · ${date.format(new Date(bid.placedAt))}`));
-      }
-      detailContent.append(
-        element("p", `${states[auction.status] ?? auction.status} · Categoría: ${auction.categoryId}`),
-        element("p", amount(auction)),
-        element("p", `Incremento mínimo: ${money.format(auction.minimumIncrement)}`),
-        element("p", `Cierre: ${date.format(new Date(auction.closesAt))}`),
-        element("h2", "Historial de pujas"),
-        auction.bids.length ? history : element("p", "Todavía no hay pujas."),
-      );
-    }, "No pudimos cargar el detalle. Vuelve al listado e inténtalo otra vez.", token);
+    bidForm.hidden = true;
+    currentAuction = undefined;
+    return load(`/auctions/${encodeURIComponent(id)}`, renderDetail,
+      "No pudimos cargar el detalle. Vuelve al listado e inténtalo otra vez.", token);
   }
 
   function showList(token, focus = false) {
     view.hidden = false;
     detail.hidden = true;
+    publication.hidden = true;
     listing.hidden = false;
     cards.replaceChildren();
     pagination.hidden = true;
@@ -127,7 +167,94 @@ export function setupAuctions(request, onExpired) {
     }, "No pudimos cargar las subastas. Usa Buscar para reintentar.");
   }
 
-  let sessionToken;
+  async function submitOperation(form, path, body, onSuccess, fallback) {
+    const controls = [form.querySelector('button[type="submit"]'), backToProfile, backToList, cancelPublication];
+    submitting = true;
+    controls.forEach((control) => { control.disabled = true; });
+    message.textContent = "Enviando…";
+    try {
+      const result = await request(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
+        body: JSON.stringify(body),
+      });
+      onSuccess(result);
+    } catch (error) {
+      if (error.statusCode === 401) {
+        onExpired();
+      } else if (error.statusCode === 409) {
+        message.textContent = "La subasta cambió. Vuelve al listado y abre el detalle antes de reintentar.";
+      } else {
+        message.textContent = operationErrors.get(error.details?.message) ?? fallback;
+      }
+    } finally {
+      controls.forEach((control) => { control.disabled = false; });
+      submitting = false;
+    }
+  }
+
+  document.querySelector("#open-publication").addEventListener("click", () => {
+    active?.abort();
+    listing.hidden = true;
+    publication.hidden = false;
+    message.textContent = "";
+    document.querySelector("#publication-heading").focus();
+  });
+  cancelPublication.addEventListener("click", () => showList(sessionToken, true));
+
+  publicationForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (submitting) return;
+    const fields = new FormData(publicationForm);
+    const itemId = fields.get("itemId").trim();
+    const categoryId = fields.get("categoryId").trim();
+    const basePrice = Number(fields.get("basePrice"));
+    const minimumIncrement = Number(fields.get("minimumIncrement"));
+    const closesAt = new Date(fields.get("closesAt"));
+    if (!itemId || !categoryId || !Number.isSafeInteger(basePrice)
+      || !Number.isSafeInteger(minimumIncrement) || !Number.isFinite(closesAt.getTime())) {
+      message.textContent = "Revisa el artículo, la categoría, los valores en pesos y la fecha de cierre.";
+      return;
+    }
+
+    submitOperation(publicationForm, "/auctions", {
+      auctionId: crypto.randomUUID(),
+      itemId,
+      categoryId,
+      basePrice,
+      minimumIncrement,
+      publishedAt: new Date().toISOString(),
+      closesAt: closesAt.toISOString(),
+    }, (auction) => {
+      publicationForm.reset();
+      filters.reset();
+      page = 1;
+      openDetail();
+      renderDetail(auction);
+      message.textContent = "Subasta publicada.";
+      document.querySelector("#auction-detail-heading").focus();
+    }, "No pudimos publicar la subasta. Revisa los datos o vuelve a intentarlo.");
+  });
+
+  bidForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (submitting || !currentAuction || bidForm.hidden) return;
+    const bidAmount = Number(new FormData(bidForm).get("amount"));
+    if (!Number.isSafeInteger(bidAmount) || bidAmount < 1) {
+      message.textContent = "Ingresa un monto válido en pesos enteros.";
+      return;
+    }
+    submitOperation(bidForm, `/auctions/${encodeURIComponent(currentAuction.id)}/bids`, {
+      bidId: crypto.randomUUID(),
+      rejectedBidAttemptId: crypto.randomUUID(),
+      amount: bidAmount,
+    }, (auction) => {
+      renderDetail(auction);
+      bidForm.reset();
+      message.textContent = "Oferta aceptada.";
+    }, "No pudimos registrar la oferta. Vuelve a intentarlo.");
+  });
+
   filters.addEventListener("submit", (event) => {
     event.preventDefault();
     page = 1;
@@ -144,16 +271,21 @@ export function setupAuctions(request, onExpired) {
   document.querySelector("#back-to-auctions").addEventListener("click", () => showList(sessionToken, true));
 
   return {
-    open(token) {
+    open(token, authenticatedUserId) {
       sessionToken = token;
+      userId = authenticatedUserId;
       return showList(token, true);
     },
     close() {
       active?.abort();
       view.hidden = true;
       sessionToken = undefined;
+      userId = undefined;
+      currentAuction = undefined;
       page = 1;
       filters.reset();
+      publicationForm.reset();
+      bidForm.reset();
     },
   };
 }
